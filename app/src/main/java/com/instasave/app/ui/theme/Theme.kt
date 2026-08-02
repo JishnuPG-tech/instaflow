@@ -1,32 +1,55 @@
 package com.instasave.app.ui.theme
 
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialTheme
+import android.app.Activity
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.Material3ExpressiveTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
-private val InstaSaveDarkColorScheme = darkColorScheme(
-    background = BgBase,
-    surface = BgSurface,
-    surfaceVariant = BgSurfaceHigh,
-    primary = AccentPrimary,
-    onPrimary = AccentOnAccent,
+private val DarkColorScheme = darkColorScheme(
+    primary = InstagramCoral,
+    onPrimary = TrueBlack,
+    primaryContainer = SurfaceVariantDark,
+    onPrimaryContainer = TextPrimary,
+    secondary = InstagramOrange,
+    onSecondary = TrueBlack,
+    background = TrueBlack,
     onBackground = TextPrimary,
+    surface = TrueBlack,
     onSurface = TextPrimary,
+    surfaceVariant = SurfaceVariantDark,
     onSurfaceVariant = TextSecondary,
-    outline = BorderHairline,
-    error = StateError
+    outline = OutlineDark,
+    outlineVariant = OutlineVariantDark,
+    error = ErrorRed,
+    onError = TrueBlack
 )
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun InstaSaveTheme(content: @Composable () -> Unit) {
-    // True-black identity is fixed — hardcode darkColorScheme, no light theme
-    MaterialTheme(
-        colorScheme = InstaSaveDarkColorScheme,
-        shapes = InstaSaveShapes,
-        typography = InstaSaveTypography,
+fun InstaSaveTheme(
+    darkTheme: Boolean = true, // Default to true-black dark theme for AMOLED efficiency
+    content: @Composable () -> Unit
+) {
+    val colorScheme = DarkColorScheme
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = TrueBlack.toArgb()
+            window.navigationBarColor = TrueBlack.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+        }
+    }
+
+    Material3ExpressiveTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

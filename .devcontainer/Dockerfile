@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     git \
     build-essential \
+    openssh-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME

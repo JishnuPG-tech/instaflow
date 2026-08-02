@@ -2,20 +2,28 @@ package com.instasave.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// InstaSave Token Colors (UI_UX_DESIGN.md §2.1)
-val BgBase = Color(0xFF000000)        // True black OLED
-val BgSurface = Color(0xFF0D0D0D)     // Cards, sheets
-val BgSurfaceHigh = Color(0xFF161616) // Pressed/active states
-val BorderHairline = Color(0xFF262626)// 1dp dividers
+// Primary Instagram Brand Accent Colors
+val InstagramCoral = Color(0xFFE1306C)
+val InstagramPurple = Color(0xFF833AB4)
+val InstagramOrange = Color(0xFFF77737)
+val InstagramYellow = Color(0xFFFCAF45)
 
-val TextPrimary = Color(0xFFF2F2F2)
-val TextHighEmphasis = Color(0xFFFFFFFF)
-val TextSecondary = Color(0xFF9E9E9E)
-val TextDisabled = Color(0xFF5C5C5C)
+// AMOLED True-Black Surface Palette
+val TrueBlack = Color(0xFF000000)
+val SurfaceDark = Color(0xFF121212)
+val SurfaceVariantDark = Color(0xFF1E1E1E)
+val SurfaceHeaderDark = Color(0xFF181818)
 
-val AccentPrimary = Color(0xFF3DE8FF)  // Aperture Cyan
-val AccentOnAccent = Color(0xFF000000)
+// Text & Content Palette
+val TextPrimary = Color(0xFFFFFFFF)
+val TextSecondary = Color(0xFFB0B0B0)
+val TextMuted = Color(0xFF757575)
 
-val StateSuccess = Color(0xFF4ADE80)
-val StateError = Color(0xFFFF5C5C)
-val StateWarning = Color(0xFFFFC24B)
+// Functional State Colors
+val SuccessGreen = Color(0xFF4CAF50)
+val ErrorRed = Color(0xFFCF6679)
+val WarningAmber = Color(0xFFFFB74D)
+
+// Card & Container Outlines
+val OutlineDark = Color(0xFF2C2C2C)
+val OutlineVariantDark = Color(0xFF3A3A3A)

@@ -1,0 +1,47 @@
+package com.instasave.app.di
+
+import com.instasave.app.core.network.generated.api.InstaSaveApi
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.scalars.ScalarsConverterFactory
+import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        return OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl("https://jishnupg-tech-instaflow.hf.space/") // Source of truth backend / local fallback
+            .client(okHttpClient)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideInstaSaveApi(retrofit: Retrofit): InstaSaveApi {
+        return InstaSaveApi(baseUrl = "https://jishnupg-tech-instaflow.hf.space/", client = retrofit.callFactory() as OkHttpClient)
+    }
+}
