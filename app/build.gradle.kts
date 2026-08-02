@@ -5,17 +5,16 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
     alias(libs.plugins.ksp)
-    alias(libs.plugins.openapi.generator)
 }
 
 android {
     namespace = "com.instasave.app"
-    compileSdk = 37
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.instasave.app"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
 
@@ -114,21 +113,4 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-}
-
-// OpenAPI Client Generation Task
-openApiGenerate {
-    generatorName.set("kotlin")
-    library.set("jvm-retrofit2")
-    inputSpec.set("$rootDir/API_SPEC.yaml")
-    outputDir.set("$buildDir/generated/openapi")
-    apiPackage.set("com.instasave.app.core.network.generated.api")
-    modelPackage.set("com.instasave.app.core.network.generated.model")
-    configOptions.set(
-        mapOf(
-            "dateLibrary" to "java8",
-            "useCoroutines" to "true",
-            "serializationLibrary" to "kotlinx_serialization"
-        )
-    )
 }
