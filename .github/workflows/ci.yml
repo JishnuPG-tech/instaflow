@@ -1,0 +1,59 @@
+name: InstaSave CI/CD Quality Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  validate-openapi-spec:
+    name: Validate OpenAPI Spec
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate API_SPEC.yaml
+        run: |
+          pip install openapi-spec-validator pyyaml
+          openapi-spec-validator API_SPEC.yaml
+
+  backend-quality:
+    name: FastAPI Quality & Test Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          pip install ruff pytest black mypy
+      - name: Run Ruff Linter
+        run: ruff check backend/
+      - name: Run Black Formatter Check
+        run: black --check backend/
+      - name: Run PyTest Suite
+        run: pytest
+
+  android-build-and-lint:
+    name: Android Build & Lint Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon

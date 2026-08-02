@@ -1,0 +1,21 @@
+# Build outputs
+.gradle/
+build/
+app/build/
+bin/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.venv/
+venv/
+ENV/
+
+# IDE & OS
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

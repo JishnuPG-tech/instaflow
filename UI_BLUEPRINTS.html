@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>InstaSave — UI Blueprint Set</title>
+<style>
+  :root {
+    --blue: #0A2E4D;
+    --blue-deep: #071F35;
+    --line: #EAF6FF;
+    --dim: #7FDBFF;
+    --accent: #3DE8FF;
+    --paper: #0d3a5c;
+  }
+  body {
+    margin: 0; padding: 40px 24px 120px;
+    background: var(--blue-deep);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    color: var(--line);
+  }
+  .cover {
+    border: 2px solid var(--line);
+    padding: 48px 32px;
+    max-width: 760px;
+    margin: 0 auto 64px;
+    text-align: center;
+  }
+  .cover h1 { font-size: 28px; letter-spacing: 4px; margin-bottom: 4px; }
+  .cover .sub { color: var(--dim); letter-spacing: 2px; font-size: 13px; margin-bottom: 32px; }
+  .sheet-index { text-align: left; font-size: 13px; line-height: 2; margin-top: 24px; border-top: 1px dashed var(--dim); padding-top: 20px; }
+  .sheet-index span.num { color: var(--accent); display: inline-block; width: 32px; }
+  .sheet {
+    max-width: 900px;
+    margin: 0 auto 100px;
+    border: 1px solid var(--dim);
+    padding: 28px;
+  }
+  .sheet h2 { font-size: 16px; letter-spacing: 2px; color: var(--accent); margin: 0 0 4px; }
+  .sheet .desc { font-size: 12px; color: var(--dim); margin-bottom: 20px; max-width: 640px; }
+  .drawing { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  svg { background: var(--blue); border: 1px solid var(--dim); flex-shrink: 0; }
+  table.legend {
+    border-collapse: collapse;
+    font-size: 11.5px;
+    flex: 1;
+    min-width: 320px;
+  }
+  table.legend caption { text-align: left; color: var(--dim); font-size: 11px; letter-spacing: 1px; margin-bottom: 8px; }
+  table.legend th, table.legend td {
+    border: 1px solid var(--dim);
+    padding: 6px 8px;
+    text-align: left;
+    vertical-align: top;
+  }
+  table.legend th { color: var(--accent); background: var(--blue-deep); font-weight: normal; letter-spacing: 1px; }
+  .tag { display:inline-block; width:16px; height:16px; border-radius:50%; border:1px solid var(--accent); color:var(--accent); text-align:center; font-size:10px; line-height:14px; margin-right:4px; }
+  .titleblock {
+    margin-top: 20px;
+    border-top: 1px dashed var(--dim);
+    padding-top: 10px;
+    font-size: 10.5px;
+    color: var(--dim);
+    display: flex;
+    justify-content: space-between;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>INSTASAVE</h1>
+  <div class="sub">UI / UX BLUEPRINT SET — SCREEN FLOOR PLANS</div>
+  <div style="font-size:12px; color:var(--line); line-height:1.7;">
+    Set of dimensioned screen "floor plans," drawn the way a building's plans are drawn —
+    fixed zones, numbered elements, a legend/schedule per sheet, and a title block.
+    Companion to UI_UX_DESIGN.md (tokens/visual spec) and UI_ARCHITECTURE.md (code structure).
+    Units below are dp (density-independent pixels), the Android layout unit — same as an
+    architectural plan uses feet/meters.
+  </div>
+  <div class="sheet-index">
+    <div><span class="num">01</span> Home Screen — paste / fetch / recent</div>
+    <div><span class="num">02</span> Resolution Picker Sheet — modal quality selector</div>
+    <div><span class="num">03</span> Carousel Grid — modal, multi-select variant</div>
+    <div><span class="num">04</span> Download Queue Screen — active/queued downloads</div>
+    <div><span class="num">05</span> History Screen — full download history</div>
+    <div><span class="num">06</span> Settings Screen</div>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 01 — HOME ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 01 — HOME SCREEN</h2>
+  <div class="desc">Entry point. Paste field is the hero element (390×844dp reference frame, portrait).</div>
+  <div class="drawing">
+    <svg width="360" height="780" viewBox="0 0 390 844">
+      <defs>
+        <pattern id="grid1" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+        <marker id="arrow1" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#7FDBFF"/>
+        </marker>
+      </defs>
+      <rect width="390" height="844" fill="url(#grid1)"/>
+      <rect x="2" y="2" width="386" height="840" rx="28" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <!-- status/top bar zone -->
+      <rect x="16" y="24" width="358" height="48" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="32" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="36" font-size="9" fill="#3DE8FF">1</text>
+      <!-- paste field -->
+      <rect x="16" y="88" width="358" height="64" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="80" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="84" font-size="9" fill="#3DE8FF">2</text>
+      <!-- clipboard hint -->
+      <rect x="16" y="160" width="358" height="20" fill="none" stroke="#3DE8FF" stroke-dasharray="2 2"/>
+      <circle cx="30" cy="170" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="174" font-size="9" fill="#3DE8FF">3</text>
+      <!-- recent section label -->
+      <rect x="16" y="196" width="358" height="20" fill="none" stroke="#3DE8FF" stroke-dasharray="2 2"/>
+      <circle cx="30" cy="206" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="210" font-size="9" fill="#3DE8FF">4</text>
+      <!-- recent cards x3 -->
+      <rect x="16" y="224" width="358" height="72" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <rect x="16" y="304" width="358" height="72" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <rect x="16" y="384" width="358" height="72" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="232" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="236" font-size="9" fill="#3DE8FF">5</text>
+      <!-- bottom nav -->
+      <rect x="2" y="768" width="386" height="74" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="774" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="778" font-size="9" fill="#3DE8FF">6</text>
+      <!-- dimension: margin 16dp -->
+      <line x1="2" y1="470" x2="16" y2="470" stroke="#7FDBFF" stroke-width="1" marker-end="url(#arrow1)"/>
+      <text x="4" y="465" font-size="8" fill="#7FDBFF">16dp</text>
+      <!-- dimension: paste field height 64dp -->
+      <line x1="380" y1="88" x2="380" y2="152" stroke="#7FDBFF" stroke-width="1"/>
+      <text x="382" y="122" font-size="8" fill="#7FDBFF">64dp</text>
+      <!-- dimension: card radius 12dp -->
+      <line x1="16" y1="224" x2="28" y2="224" stroke="#7FDBFF" stroke-width="1" marker-end="url(#arrow1)"/>
+      <text x="16" y="218" font-size="8" fill="#7FDBFF">r12dp</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 01</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Top bar</td><td>56dp height, transparent, title "InstaSave" + settings icon right</td></tr>
+      <tr><td><span class="tag">2</span></td><td>Paste field (hero)</td><td>64dp height, r12dp, bg.surface, cyan focus glow</td></tr>
+      <tr><td><span class="tag">3</span></td><td>Clipboard hint</td><td>Inline text, text.secondary, appears only if valid IG URL on clipboard</td></tr>
+      <tr><td><span class="tag">4</span></td><td>"Recent" label</td><td>Title style, Space Grotesk Medium</td></tr>
+      <tr><td><span class="tag">5</span></td><td>Recent download cards ×3</td><td>72dp height each, r12dp, hairline border — shared `DownloadHistoryCard` component</td></tr>
+      <tr><td><span class="tag">6</span></td><td>Bottom nav bar</td><td>74dp height, 4 destinations, 1dp top hairline</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 01/06 — HOME</span><span>REF FRAME: 390×844dp</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 02 — RESOLUTION PICKER ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 02 — RESOLUTION PICKER SHEET (modal)</h2>
+  <div class="desc">Modal overlay, not a nav destination (see UI_ARCHITECTURE.md §5). Slides up from bottom over Home.</div>
+  <div class="drawing">
+    <svg width="360" height="480" viewBox="0 0 390 520">
+      <defs>
+        <pattern id="grid2" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+        <marker id="arrow2" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#7FDBFF"/>
+        </marker>
+      </defs>
+      <rect width="390" height="520" fill="url(#grid2)"/>
+      <!-- scrim over background screen -->
+      <rect x="0" y="0" width="390" height="160" fill="#000" opacity="0.5"/>
+      <!-- sheet body -->
+      <rect x="0" y="160" width="390" height="360" rx="0" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <path d="M0,184 Q0,160 24,160 L366,160 Q390,160 390,184" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <!-- drag handle -->
+      <rect x="171" y="172" width="48" height="4" rx="2" fill="none" stroke="#3DE8FF"/>
+      <circle cx="163" cy="174" r="8" fill="none" stroke="#3DE8FF"/><text x="160" y="178" font-size="9" fill="#3DE8FF">1</text>
+      <!-- thumbnail + meta row -->
+      <rect x="16" y="196" width="358" height="64" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="204" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="208" font-size="9" fill="#3DE8FF">2</text>
+      <!-- quality button group -->
+      <rect x="16" y="276" width="358" height="56" rx="16" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="270" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="274" font-size="9" fill="#3DE8FF">3</text>
+      <!-- audio only toggle row -->
+      <rect x="16" y="344" width="358" height="24" fill="none" stroke="#3DE8FF" stroke-dasharray="2 2"/>
+      <circle cx="30" cy="356" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="360" font-size="9" fill="#3DE8FF">4</text>
+      <!-- download CTA -->
+      <rect x="16" y="384" width="358" height="56" rx="16" fill="none" stroke="#3DE8FF" stroke-width="2"/>
+      <circle cx="30" cy="378" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="382" font-size="9" fill="#3DE8FF">5</text>
+      <!-- dimension: cta height 56dp -->
+      <line x1="380" y1="384" x2="380" y2="440" stroke="#7FDBFF" stroke-width="1"/>
+      <text x="382" y="414" font-size="8" fill="#7FDBFF">56dp</text>
+      <!-- dimension: top corner radius 24dp -->
+      <line x1="0" y1="160" x2="24" y2="160" stroke="#7FDBFF" stroke-width="1"/>
+      <text x="2" y="150" font-size="8" fill="#7FDBFF">r24dp</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 02</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Drag handle</td><td>48×4dp pill, #3A3A3A</td></tr>
+      <tr><td><span class="tag">2</span></td><td>Thumbnail + author + caption</td><td>64dp row, thumbnail left, 2-line caption truncation</td></tr>
+      <tr><td><span class="tag">3</span></td><td>Quality selector</td><td>M3 Expressive connected Button Group — 1080p / 720p / 480p, mono-data labels + file size</td></tr>
+      <tr><td><span class="tag">4</span></td><td>Audio-only option</td><td>Radio row, secondary priority</td></tr>
+      <tr><td><span class="tag">5</span></td><td>Download CTA</td><td>56dp height, r16dp, accent.primary fill, full width</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 02/06 — RESOLUTION PICKER</span><span>TYPE: MODAL</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 03 — CAROUSEL GRID ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 03 — CAROUSEL GRID (modal variant)</h2>
+  <div class="desc">Replaces Sheet 02's quality selector when the resolved link is a multi-item carousel post.</div>
+  <div class="drawing">
+    <svg width="360" height="480" viewBox="0 0 390 520">
+      <defs>
+        <pattern id="grid3" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="390" height="520" fill="url(#grid3)"/>
+      <rect x="0" y="0" width="390" height="120" fill="#000" opacity="0.5"/>
+      <rect x="0" y="120" width="390" height="400" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <!-- header row -->
+      <rect x="16" y="140" width="358" height="28" fill="none" stroke="#3DE8FF" stroke-dasharray="2 2"/>
+      <circle cx="30" cy="148" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="152" font-size="9" fill="#3DE8FF">1</text>
+      <!-- 3x2 grid -->
+      <g stroke="#3DE8FF" stroke-dasharray="4 3" fill="none">
+        <rect x="16" y="184" width="110" height="110" rx="8"/>
+        <rect x="140" y="184" width="110" height="110" rx="8"/>
+        <rect x="264" y="184" width="110" height="110" rx="8"/>
+        <rect x="16" y="308" width="110" height="110" rx="8"/>
+        <rect x="140" y="308" width="110" height="110" rx="8"/>
+        <rect x="264" y="308" width="110" height="110" rx="8"/>
+      </g>
+      <circle cx="30" cy="176" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="180" font-size="9" fill="#3DE8FF">2</text>
+      <!-- checkmark overlay example on tile 1,3,5 -->
+      <circle cx="112" cy="196" r="8" fill="none" stroke="#3DE8FF"/><text x="109" y="200" font-size="8" fill="#3DE8FF">✓</text>
+      <!-- download selected CTA -->
+      <rect x="16" y="436" width="358" height="56" rx="16" fill="none" stroke="#3DE8FF" stroke-width="2"/>
+      <circle cx="30" cy="430" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="434" font-size="9" fill="#3DE8FF">3</text>
+      <!-- gutter dimension -->
+      <line x1="126" y1="230" x2="140" y2="230" stroke="#7FDBFF" stroke-width="1"/>
+      <text x="120" y="224" font-size="8" fill="#7FDBFF">14dp gutter</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 03</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Header row</td><td>"Carousel · N items" + "Select all" toggle, right-aligned</td></tr>
+      <tr><td><span class="tag">2</span></td><td>3-column tile grid</td><td>110×110dp tiles, r8dp, 14dp gutter, checkbox overlay top-right per tile</td></tr>
+      <tr><td><span class="tag">3</span></td><td>"Download N selected" CTA</td><td>56dp height, r16dp, disabled state when 0 selected</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 03/06 — CAROUSEL GRID</span><span>TYPE: MODAL VARIANT</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 04 — DOWNLOAD QUEUE ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 04 — DOWNLOAD QUEUE SCREEN</h2>
+  <div class="desc">Nav destination. Aperture Ring is the one fully custom component in the entire app (item #2 below).</div>
+  <div class="drawing">
+    <svg width="360" height="780" viewBox="0 0 390 844">
+      <defs>
+        <pattern id="grid4" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="390" height="844" fill="url(#grid4)"/>
+      <rect x="2" y="2" width="386" height="840" rx="28" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <rect x="16" y="24" width="358" height="48" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="32" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="36" font-size="9" fill="#3DE8FF">1</text>
+      <!-- queue item rows x3, each with ring at left -->
+      <g>
+        <rect x="16" y="88" width="358" height="88" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+        <circle cx="52" cy="132" r="24" fill="none" stroke="#3DE8FF" stroke-width="2"/>
+        <path d="M52,108 A24,24 0 0 1 76,132" fill="none" stroke="#3DE8FF" stroke-width="2"/>
+        <circle cx="30" cy="96" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="100" font-size="9" fill="#3DE8FF">2</text>
+
+        <rect x="16" y="188" width="358" height="88" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+        <circle cx="52" cy="232" r="24" fill="none" stroke="#3DE8FF" stroke-width="2" stroke-dasharray="2 2"/>
+
+        <rect x="16" y="288" width="358" height="88" rx="12" fill="none" stroke="#FF5C5C" stroke-dasharray="4 3"/>
+        <circle cx="52" cy="332" r="24" fill="none" stroke="#FF5C5C" stroke-width="2"/>
+        <text x="46" y="337" font-size="14" fill="#FF5C5C">!</text>
+        <circle cx="30" cy="296" r="8" fill="none" stroke="#FF5C5C"/><text x="27" y="300" font-size="9" fill="#FF5C5C">3</text>
+      </g>
+      <rect x="2" y="768" width="386" height="74" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="774" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="778" font-size="9" fill="#3DE8FF">4</text>
+      <!-- ring diameter dimension -->
+      <line x1="28" y1="108" x2="28" y2="156" stroke="#7FDBFF" stroke-width="1"/>
+      <text x="4" y="134" font-size="8" fill="#7FDBFF">48dp⌀</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 04</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Top bar</td><td>"Queue" title, 56dp</td></tr>
+      <tr><td><span class="tag">2</span></td><td>Active item + Aperture Ring</td><td>88dp row, 48dp⌀ ring closing proportional to progress, filename + quality + MB text right of ring</td></tr>
+      <tr><td>—</td><td>Queued item (dashed ring)</td><td>Ring fully open = waiting state</td></tr>
+      <tr><td><span class="tag">3</span></td><td>Failed item</td><td>state.error border + ring, "!" glyph, retry action</td></tr>
+      <tr><td><span class="tag">4</span></td><td>Bottom nav bar</td><td>Same component as Sheet 01, "Queue" tab active</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 04/06 — QUEUE</span><span>KEY COMPONENT: APERTURE RING</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 05 — HISTORY ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 05 — HISTORY SCREEN</h2>
+  <div class="desc">Full download archive. Thumbnail grid reuses the same visual card language as Sheet 01's recent list.</div>
+  <div class="drawing">
+    <svg width="360" height="780" viewBox="0 0 390 844">
+      <defs>
+        <pattern id="grid5" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="390" height="844" fill="url(#grid5)"/>
+      <rect x="2" y="2" width="386" height="840" rx="28" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <rect x="16" y="24" width="358" height="48" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="32" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="36" font-size="9" fill="#3DE8FF">1</text>
+      <!-- search bar -->
+      <rect x="16" y="88" width="358" height="44" rx="12" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="96" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="100" font-size="9" fill="#3DE8FF">2</text>
+      <!-- 3-col thumbnail grid, 3 rows -->
+      <g stroke="#3DE8FF" stroke-dasharray="4 3" fill="none">
+        <rect x="16" y="148" width="110" height="110" rx="8"/><rect x="140" y="148" width="110" height="110" rx="8"/><rect x="264" y="148" width="110" height="110" rx="8"/>
+        <rect x="16" y="272" width="110" height="110" rx="8"/><rect x="140" y="272" width="110" height="110" rx="8"/><rect x="264" y="272" width="110" height="110" rx="8"/>
+        <rect x="16" y="396" width="110" height="110" rx="8"/><rect x="140" y="396" width="110" height="110" rx="8"/><rect x="264" y="396" width="110" height="110" rx="8"/>
+      </g>
+      <circle cx="30" cy="140" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="144" font-size="9" fill="#3DE8FF">3</text>
+      <rect x="2" y="768" width="386" height="74" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="774" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="778" font-size="9" fill="#3DE8FF">4</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 05</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Top bar</td><td>"History" title + search icon</td></tr>
+      <tr><td><span class="tag">2</span></td><td>Search field</td><td>44dp, debounced query against Room</td></tr>
+      <tr><td><span class="tag">3</span></td><td>3-col thumbnail grid</td><td>110×110dp tiles, r8dp, long-press → share/delete context menu, virtualized for 100+ items</td></tr>
+      <tr><td><span class="tag">4</span></td><td>Bottom nav bar</td><td>"History" tab active</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 05/06 — HISTORY</span><span>DATA SOURCE: ROOM</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+<!-- ============================================================ SHEET 06 — SETTINGS ============================================================ -->
+<div class="sheet">
+  <h2>SHEET 06 — SETTINGS SCREEN</h2>
+  <div class="desc">Grouped sections: Downloads, Advanced, About. No Account section in v1 (login is post-MVP).</div>
+  <div class="drawing">
+    <svg width="360" height="780" viewBox="0 0 390 844">
+      <defs>
+        <pattern id="grid6" width="16" height="16" patternUnits="userSpaceOnUse">
+          <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#123a5c" stroke-width="0.5"/>
+        </pattern>
+      </defs>
+      <rect width="390" height="844" fill="url(#grid6)"/>
+      <rect x="2" y="2" width="386" height="840" rx="28" fill="none" stroke="#EAF6FF" stroke-width="2"/>
+      <rect x="16" y="24" width="358" height="48" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="32" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="36" font-size="9" fill="#3DE8FF">1</text>
+      <!-- Downloads section -->
+      <rect x="16" y="88" width="358" height="176" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="80" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="84" font-size="9" fill="#3DE8FF">2</text>
+      <!-- Advanced section -->
+      <rect x="16" y="280" width="358" height="56" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="272" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="276" font-size="9" fill="#3DE8FF">3</text>
+      <!-- About section -->
+      <rect x="16" y="352" width="358" height="56" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="344" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="348" font-size="9" fill="#3DE8FF">4</text>
+      <rect x="2" y="768" width="386" height="74" fill="none" stroke="#3DE8FF" stroke-dasharray="4 3"/>
+      <circle cx="30" cy="774" r="8" fill="none" stroke="#3DE8FF"/><text x="27" y="778" font-size="9" fill="#3DE8FF">5</text>
+    </svg>
+    <table class="legend">
+      <caption>ZONE SCHEDULE — SHEET 06</caption>
+      <tr><th>#</th><th>Zone</th><th>Spec</th></tr>
+      <tr><td><span class="tag">1</span></td><td>Top bar</td><td>"Settings" title</td></tr>
+      <tr><td><span class="tag">2</span></td><td>Downloads section</td><td>Save location (opens SAF picker) · Default quality · Wi-Fi only toggle · Max concurrent downloads</td></tr>
+      <tr><td><span class="tag">3</span></td><td>Advanced section</td><td>Custom yt-dlp templates (optional, power-user, low priority)</td></tr>
+      <tr><td><span class="tag">4</span></td><td>About section</td><td>Version number, "Check for updates" (GitHub Releases API)</td></tr>
+      <tr><td><span class="tag">5</span></td><td>Bottom nav bar</td><td>"Settings" tab active</td></tr>
+    </table>
+  </div>
+  <div class="titleblock">
+    <span>PROJECT: INSTASAVE</span><span>SHEET: 06/06 — SETTINGS</span><span>NOTE: NO ACCOUNT SECTION IN V1</span><span>SCALE: NTS</span><span>REV: 1.0</span>
+  </div>
+</div>
+
+</body>
+</html>
