@@ -19,7 +19,7 @@ jobs:
       - name: Validate API_SPEC.yaml
         run: |
           pip install openapi-spec-validator pyyaml
-          openapi-spec-validator API_SPEC.yaml
+          python -m openapi_spec_validator API_SPEC.yaml
 
   backend-quality:
     name: FastAPI Quality & Test Gate
@@ -33,13 +33,13 @@ jobs:
       - name: Install Dependencies
         run: |
           pip install -r backend/requirements.txt
-          pip install ruff pytest black mypy
+          pip install ruff pytest
       - name: Run Ruff Linter
-        run: ruff check backend/
-      - name: Run Black Formatter Check
-        run: black --check backend/
+        run: python -m ruff check backend/
+      - name: Run Ruff Formatter Check
+        run: python -m ruff format --check backend/
       - name: Run PyTest Suite
-        run: pytest
+        run: python -m pytest
 
   android-build-and-lint:
     name: Android Build & Lint Gate
@@ -53,9 +53,9 @@ jobs:
           java-version: '17'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
       - name: Run Unit Tests
-        run: gradle testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon
