@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from config import settings
 from security import validate_instagram_url
+from extractor import extract_media_info
 
 app = FastAPI(
     title=settings.app_name,
@@ -63,24 +64,10 @@ def get_health():
 
 
 @app.post("/api/resolve", response_model=MediaInfo)
-def resolve_media(body: ResolveRequest):
+async def resolve_media(body: ResolveRequest):
     # Enforce strict SSRF & URL validation
     validate_instagram_url(body.url)
 
-    # Phase 0 stub response matching API_SPEC.yaml schema
-    return MediaInfo(
-        id="sample_shortcode",
-        type="reel",
-        author="sample_author",
-        caption="Sample Instagram Reel Caption",
-        formats=[
-            MediaFormat(
-                formatId="1080p",
-                label="1080p HD",
-                ext="mp4",
-                height=1080,
-                width=1080,
-                filesizeBytes=25800000,
-            )
-        ],
-    )
+    # Perform metadata extraction via yt-dlp
+    extracted_data = await extract_media_info(body.url)
+    return MediaInfo(**extracted_data)
