@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.instasave.app.ui.picker.CarouselItemGrid
+import com.instasave.app.ui.picker.FormatPickerBottomSheet
 import com.instasave.app.ui.theme.InstagramCoral
 import com.instasave.app.ui.theme.SurfaceVariantDark
 import com.instasave.app.ui.theme.TextMuted
@@ -191,9 +193,9 @@ private fun HomeContent(
             }
         }
 
-        // Resolved Media Card Preview
+        // Resolved Media Content Preview & Carousel Items Grid
         uiState.resolvedMedia?.let { media ->
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = SurfaceVariantDark),
@@ -213,17 +215,32 @@ private fun HomeContent(
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
-                    media.caption?.let { caption ->
+
+                    // Carousel Slides Grid if media is carousel
+                    if (!media.carouselItems.isNullOrEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = caption,
-                            style = MaterialTheme.typography.bodyMedium,
+                            text = "Carousel Slides (${uiState.selectedCarouselIndices.size}/${media.carouselItems.size} Selected)",
+                            style = MaterialTheme.typography.labelLarge,
                             color = TextPrimary,
-                            maxLines = 2,
-                            modifier = Modifier.padding(top = 8.dp)
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CarouselItemGrid(
+                            items = media.carouselItems,
+                            selectedIndices = uiState.selectedCarouselIndices,
+                            onToggleItem = { index -> onEvent(HomeUiEvent.ToggleCarouselItem(index)) }
                         )
                     }
                 }
             }
+
+            // Format Selection Modal Bottom Sheet
+            FormatPickerBottomSheet(
+                mediaInfo = media,
+                onFormatSelected = { format -> onEvent(HomeUiEvent.FormatSelected(format)) },
+                onDismissRequest = { onEvent(HomeUiEvent.ClearResolvedMedia) }
+            )
         }
     }
 }

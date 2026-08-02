@@ -27,7 +27,22 @@ class HomeViewModel @Inject constructor(
             is HomeUiEvent.ClearUrl -> _uiState.update { it.copy(urlInput = "") }
             is HomeUiEvent.ResolveClicked -> resolveCurrentUrl()
             is HomeUiEvent.DismissError -> _uiState.update { it.copy(error = null) }
-            is HomeUiEvent.ClearResolvedMedia -> _uiState.update { it.copy(resolvedMedia = null) }
+            is HomeUiEvent.ClearResolvedMedia -> _uiState.update { it.copy(resolvedMedia = null, selectedFormat = null) }
+            is HomeUiEvent.ToggleCarouselItem -> {
+                _uiState.update { state ->
+                    val newSet = state.selectedCarouselIndices.toMutableSet()
+                    if (newSet.contains(event.index)) {
+                        newSet.remove(event.index)
+                    } else {
+                        newSet.add(event.index)
+                    }
+                    state.copy(selectedCarouselIndices = newSet)
+                }
+            }
+            is HomeUiEvent.FormatSelected -> {
+                _uiState.update { it.copy(selectedFormat = event.format) }
+                // Triggers download pipeline in Phase 4
+            }
         }
     }
 
@@ -47,7 +62,14 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isResolving = true, error = null) }
             try {
                 val mediaInfo = api.resolveMedia(ResolveRequest(url = currentUrl))
-                _uiState.update { it.copy(isResolving = false, resolvedMedia = mediaInfo) }
+                val initialIndices = mediaInfo.carouselItems?.indices?.toSet() ?: emptySet()
+                _uiState.update {
+                    it.copy(
+                        isResolving = false,
+                        resolvedMedia = mediaInfo,
+                        selectedCarouselIndices = initialIndices
+                    )
+                }
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(
