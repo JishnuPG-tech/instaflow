@@ -11,7 +11,7 @@ jobs:
     name: Validate OpenAPI Spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -27,7 +27,7 @@ jobs:
     env:
       PYTHONPATH: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -47,7 +47,7 @@ jobs:
     name: Android Build & Lint Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
