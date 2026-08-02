@@ -24,6 +24,8 @@ jobs:
   backend-quality:
     name: FastAPI Quality & Test Gate
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: backend
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -51,11 +53,11 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - name: Setup Gradle
+      - name: Setup Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x gradlew
+        with:
+          gradle-version: '8.11.1'
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon
+        run: gradle assembleDebug --no-daemon
       - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: gradle testDebugUnitTest --no-daemon
