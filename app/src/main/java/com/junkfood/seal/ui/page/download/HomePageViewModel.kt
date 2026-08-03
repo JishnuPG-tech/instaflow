@@ -15,6 +15,7 @@ import com.junkfood.seal.R
 import com.junkfood.seal.util.CUSTOM_COMMAND
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_SELECTION
+import com.junkfood.seal.util.InstagramCarouselRouter
 import com.junkfood.seal.util.PLAYLIST
 import com.junkfood.seal.util.PlaylistResult
 import com.junkfood.seal.util.PreferenceUtil.getBoolean
@@ -25,9 +26,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 // TODO: Refactoring for introducing multitasking and download queue management
-class HomePageViewModel : ViewModel() {
+class HomePageViewModel : ViewModel(), KoinComponent {
+    private val downloader: com.junkfood.seal.download.DownloaderV2 by inject()
 
     private val mutableViewStateFlow = MutableStateFlow(ViewState())
     val viewStateFlow = mutableViewStateFlow.asStateFlow()
@@ -91,7 +95,30 @@ class HomePageViewModel : ViewModel() {
                     updateState(State.Idle)
                     when (info) {
                         is PlaylistResult -> {
-                            showPlaylistPage(info)
+                            // WP 4.2: Instagram carousels are auto-downloaded without
+                            // showing the playlist selection dialog. All other playlist
+                            // types (YouTube, SoundCloud, etc.) use the normal path.
+                            val carouselResult = InstagramCarouselRouter.routeFromPlaylist(
+                                originalUrl = url,
+                                playlistResult = info,
+                                preferences = DownloadUtil.DownloadPreferences.createFromPreferences(),
+                                downloader = downloader,
+                            )
+                            when (carouselResult) {
+                                is InstagramCarouselRouter.RoutingResult.CarouselEnqueued -> {
+                                    ToastUtil.makeToast(
+                                        "Downloading ${carouselResult.itemCount} items from @${carouselResult.author}"
+                                    )
+                                }
+                                is InstagramCarouselRouter.RoutingResult.ParseFailed -> {
+                                    // Fall back to playlist dialog so user isn't stuck.
+                                    showPlaylistPage(info)
+                                }
+                                InstagramCarouselRouter.RoutingResult.SingleItem -> {
+                                    // Not an Instagram carousel — show normal playlist selection.
+                                    showPlaylistPage(info)
+                                }
+                            }
                         }
 
                         is VideoInfo -> {
