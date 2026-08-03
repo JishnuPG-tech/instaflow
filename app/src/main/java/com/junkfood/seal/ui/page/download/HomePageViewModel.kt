@@ -43,6 +43,13 @@ class HomePageViewModel : ViewModel(), KoinComponent {
         val url: String = "",
         val showFormatSelectionPage: Boolean = false,
         val isUrlSharingTriggered: Boolean = false,
+        val showInstagramPreviewSheet: Boolean = false,
+        val instagramAuthor: String = "instagram_user",
+        val instagramCaption: String = "",
+        val instagramThumbnail: String = "",
+        val instagramItems: List<com.junkfood.seal.database.InstagramMediaItem> = emptyList(),
+        val isInstagramCarousel: Boolean = false,
+        val targetVideoInfo: VideoInfo? = null,
     )
 
     fun updateUrl(url: String, isUrlSharingTriggered: Boolean = false) =
@@ -62,6 +69,14 @@ class HomePageViewModel : ViewModel(), KoinComponent {
             ToastUtil.makeToast(context.getString(R.string.url_empty))
             return
         }
+
+        // Instagram-First Interception: Replace Seal format/playlist pickers for Instagram URLs
+        val parsedIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parse(url)
+        if (parsedIgUrl.isValid) {
+            viewModelScope.launch(Dispatchers.IO) { fetchInfoForInstagramSheet(url, parsedIgUrl) }
+            return
+        }
+
         if (PLAYLIST.getBoolean()) {
             viewModelScope.launch(Dispatchers.IO) { parsePlaylistInfo(url) }
             return
@@ -73,6 +88,84 @@ class HomePageViewModel : ViewModel(), KoinComponent {
         }
 
         Downloader.getInfoAndDownload(url)
+    }
+
+    private fun fetchInfoForInstagramSheet(url: String, parseResult: com.junkfood.seal.util.InstagramUrlParseResult) {
+        Downloader.updateState(State.FetchingInfo)
+        DownloadUtil.getPlaylistOrVideoInfo(url)
+            .onSuccess { info ->
+                Downloader.updateState(State.Idle)
+                when (info) {
+                    is PlaylistResult -> {
+                        val items = com.junkfood.seal.util.InstagramCarouselItemParser.parseEntries(info.entries)
+                        mutableViewStateFlow.update {
+                            it.copy(
+                                showInstagramPreviewSheet = true,
+                                instagramAuthor = info.uploader ?: parseResult.shortcode ?: "instagram_user",
+                                instagramCaption = info.title ?: "",
+                                instagramThumbnail = items.firstOrNull()?.displayUrl ?: "",
+                                instagramItems = items,
+                                isInstagramCarousel = true,
+                            )
+                        }
+                    }
+                    is VideoInfo -> {
+                        mutableViewStateFlow.update {
+                            it.copy(
+                                showInstagramPreviewSheet = true,
+                                instagramAuthor = info.uploader ?: parseResult.shortcode ?: "instagram_user",
+                                instagramCaption = info.title ?: "",
+                                instagramThumbnail = info.thumbnailUrl ?: "",
+                                instagramItems = emptyList(),
+                                isInstagramCarousel = false,
+                                targetVideoInfo = info,
+                            )
+                        }
+                    }
+                }
+            }
+            .onFailure {
+                Downloader.manageDownloadError(th = it, url = url, isFetchingInfo = true, isTaskAborted = true)
+                Downloader.updateState(State.Idle)
+            }
+    }
+
+    fun hideInstagramPreviewSheet() {
+        mutableViewStateFlow.update { it.copy(showInstagramPreviewSheet = false) }
+    }
+
+    fun downloadInstagramSingle(audioOnly: Boolean = false) {
+        val info = viewStateFlow.value.targetVideoInfo
+        val url = viewStateFlow.value.url
+        hideInstagramPreviewSheet()
+        if (info != null) {
+            val preferences = DownloadUtil.DownloadPreferences.createFromPreferences().copy(extractAudio = audioOnly)
+            Downloader.downloadVideoWithInfo(info = info, preferences = preferences)
+        } else if (url.isNotEmpty()) {
+            Downloader.getInfoAndDownload(url)
+        }
+    }
+
+    fun downloadInstagramSelectedItems(selectedItems: List<com.junkfood.seal.database.InstagramMediaItem>) {
+        hideInstagramPreviewSheet()
+        val prefs = DownloadUtil.DownloadPreferences.createFromPreferences()
+        selectedItems.forEachIndexed { index, item ->
+            val itemUrl = item.videoUrl.ifEmpty { item.displayUrl }
+            if (itemUrl.isNotEmpty()) {
+                val task = com.junkfood.seal.download.Task(
+                    url = itemUrl,
+                    preferences = prefs,
+                ).apply {
+                    viewState = viewState.copy(
+                        title = "(@${viewStateFlow.value.instagramAuthor}) Item ${index + 1} of ${selectedItems.size}",
+                        thumbnailUrl = item.displayUrl,
+                        uploader = viewStateFlow.value.instagramAuthor,
+                    )
+                }
+                downloader.enqueue(task, com.junkfood.seal.download.Task.State.Idle)
+            }
+        }
+        ToastUtil.makeToast("Enqueued ${selectedItems.size} items for download")
     }
 
     private fun fetchInfoForFormatSelection(url: String) {

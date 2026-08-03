@@ -231,6 +231,21 @@ fun DownloadPage(
         )
     }
 
+    if (viewState.showInstagramPreviewSheet) {
+        com.junkfood.seal.ui.component.InstagramMediaPreviewSheet(
+            author = viewState.instagramAuthor,
+            caption = viewState.instagramCaption,
+            thumbnailUrl = viewState.instagramThumbnail,
+            items = viewState.instagramItems,
+            isCarousel = viewState.isInstagramCarousel,
+            onDismissRequest = { homePageViewModel.hideInstagramPreviewSheet() },
+            onDownloadSingleImage = { homePageViewModel.downloadInstagramSingle(audioOnly = false) },
+            onDownloadVideo = { homePageViewModel.downloadInstagramSingle(audioOnly = false) },
+            onDownloadAudioOnly = { homePageViewModel.downloadInstagramSingle(audioOnly = true) },
+            onDownloadSelectedItems = { selectedItems -> homePageViewModel.downloadInstagramSelectedItems(selectedItems) },
+        )
+    }
+
     DisposableEffect(viewState.showPlaylistSelectionDialog) {
         if (!playlistInfo.entries.isNullOrEmpty() && viewState.showPlaylistSelectionDialog)
             navigateToPlaylistPage()
