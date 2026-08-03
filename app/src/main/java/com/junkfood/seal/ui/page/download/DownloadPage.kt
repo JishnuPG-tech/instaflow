@@ -330,32 +330,37 @@ fun DownloadPage(
             }
         }
 
-        if (showDialog) {
+        val isIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parseUrl(
+            com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
+        ).isValid
 
-            DownloadDialog(
-                state = state,
-                sheetState = sheetState,
-                config = Config(),
-                preferences = preferences,
-                onPreferencesUpdate = { preferences = it },
-                onActionPost = { dialogViewModel.postAction(it) },
+        if (!isIgUrl) {
+            if (showDialog) {
+                DownloadDialog(
+                    state = state,
+                    sheetState = sheetState,
+                    config = Config(),
+                    preferences = preferences,
+                    onPreferencesUpdate = { preferences = it },
+                    onActionPost = { dialogViewModel.postAction(it) },
+                )
+            }
+            when (selectionState) {
+                is DownloadDialogViewModel.SelectionState.FormatSelection ->
+                    FormatPage(
+                        state = selectionState,
+                        onDismissRequest = { dialogViewModel.postAction(Action.Reset) },
+                    )
+                else -> {}
+            }
+            DownloadSettingDialog(
+                useDialog = useDialog,
+                showDialog = showDownloadDialog,
+                onNavigateToCookieGeneratorPage = onNavigateToCookieGeneratorPage,
+                onDownloadConfirm = { checkPermissionOrDownload() },
+                onDismissRequest = { showDownloadDialog = false },
             )
         }
-        when (selectionState) {
-            is DownloadDialogViewModel.SelectionState.FormatSelection ->
-                FormatPage(
-                    state = selectionState,
-                    onDismissRequest = { dialogViewModel.postAction(Action.Reset) },
-                )
-            else -> {}
-        }
-        DownloadSettingDialog(
-            useDialog = useDialog,
-            showDialog = showDownloadDialog,
-            onNavigateToCookieGeneratorPage = onNavigateToCookieGeneratorPage,
-            onDownloadConfirm = { checkPermissionOrDownload() },
-            onDismissRequest = { showDownloadDialog = false },
-        )
 
         if (showInstagramFlow) {
             val normalized = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
