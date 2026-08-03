@@ -102,11 +102,15 @@ android {
             )
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("githubPublish")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
         }
         debug {
             if (keystorePropertiesFile.exists()) {
                 signingConfig = signingConfigs.getByName("githubPublish")
+            } else {
+                signingConfig = signingConfigs.getByName("debug")
             }
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
