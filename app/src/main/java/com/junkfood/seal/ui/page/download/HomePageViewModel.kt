@@ -98,15 +98,17 @@ class HomePageViewModel : ViewModel(), KoinComponent {
                 when (info) {
                     is PlaylistResult -> {
                         val items = info.entries?.mapIndexed { index, entry ->
+                            val isVideoEntry = (entry.duration ?: 0.0) > 0.0
                             com.junkfood.seal.database.InstagramMediaItem(
                                 id = entry.id ?: "${parseResult.shortcode}_$index",
                                 shortcode = parseResult.shortcode ?: "",
-                                mediaType = com.junkfood.seal.database.InstagramMediaType.IMAGE,
+                                mediaType = if (isVideoEntry) com.junkfood.seal.database.InstagramMediaType.VIDEO else com.junkfood.seal.database.InstagramMediaType.IMAGE,
                                 downloadUrl = entry.url ?: "",
                                 thumbnailUrl = entry.thumbnails?.firstOrNull()?.url ?: entry.url ?: "",
                                 authorUsername = info.uploader ?: parseResult.username ?: "instagram_user",
                                 caption = info.title,
-                                isVideo = false,
+                                isVideo = isVideoEntry,
+                                durationSeconds = entry.duration?.toInt() ?: 0,
                                 carouselIndex = index,
                                 totalCarouselItems = info.entries?.size ?: 1,
                             )
