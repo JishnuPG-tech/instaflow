@@ -148,6 +148,11 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
     private fun fetchFormat(action: Action.FetchFormats) {
         val (url, audioOnly, preferences) = action
+        val norm = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(url)
+        if (com.junkfood.seal.util.InstagramUrlValidator.parseUrl(norm).isValid) {
+            hideDialog()
+            return
+        }
 
         val job =
             viewModelScope.launch(Dispatchers.IO) {
@@ -209,6 +214,14 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
     private fun showDialog(action: Action.ShowSheet) {
         val urlList = action.urlList
+        if (urlList?.any { url ->
+                val norm = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(url)
+                com.junkfood.seal.util.InstagramUrlValidator.parseUrl(norm).isValid
+            } == true
+        ) {
+            hideDialog()
+            return
+        }
         if (!urlList.isNullOrEmpty()) {
             mSheetStateFlow.update { SheetState.Configure(urlList) }
         } else {

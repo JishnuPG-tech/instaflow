@@ -147,6 +147,22 @@ fun DownloadPage(
     val errorState by Downloader.errorState.collectAsStateWithLifecycle()
     val processCount by Downloader.processCount.collectAsStateWithLifecycle()
 
+    var showInstagramFlow by rememberSaveable { mutableStateOf(false) }
+
+    val normalizedUrl = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
+    val isIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parseUrl(normalizedUrl).isValid
+
+    if (showInstagramFlow || (isIgUrl && viewState.url.isNotEmpty())) {
+        com.junkfood.seal.features.instagram.navigation.InstagramNavigation(
+            url = normalizedUrl,
+            onNavigateBack = {
+                showInstagramFlow = false
+                homePageViewModel.updateUrl("")
+            }
+        )
+        return
+    }
+
     var showNotificationDialog by remember { mutableStateOf(false) }
     val notificationPermission =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -283,7 +299,7 @@ fun DownloadPage(
             taskState = taskState,
             viewState = viewState,
             errorState = errorState,
-            downloadCallback = { dialogViewModel.postAction(Action.ShowSheet()) },
+            downloadCallback = downloadCallback,
             navigateToSettings = navigateToSettings,
             navigateToDownloads = navigateToDownloads,
             onNavigateToTaskList = onNavigateToTaskList,

@@ -130,6 +130,17 @@ fun FormatPage(
     downloader: DownloaderV2 = koinInject(),
     onNavigateBack: () -> Unit = {},
 ) {
+    val isIg = videoInfo.webpageUrl?.let {
+        com.junkfood.seal.util.InstagramUrlValidator.parseUrl(
+            com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(it)
+        ).isValid
+    } ?: false
+
+    if (isIg) {
+        onNavigateBack()
+        return
+    }
+
     if (videoInfo.formats.isNullOrEmpty()) return
     val audioOnly = EXTRACT_AUDIO.getBoolean()
     val mergeAudioStream = MERGE_MULTI_AUDIO_STREAM.getBoolean()
