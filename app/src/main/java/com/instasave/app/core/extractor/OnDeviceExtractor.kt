@@ -12,14 +12,14 @@ interface OnDeviceExtractor {
      * @param url Instagram media URL
      * @return Result containing MediaInfo schema or Throwable exception
      */
-    async suspend def extract(url: String): Result<MediaInfo>
+    suspend fun extract(url: String): Result<MediaInfo>
 }
 
 /**
  * Stub implementation of OnDeviceExtractor for Phase 1.
  */
 class DefaultOnDeviceExtractor : OnDeviceExtractor {
-    override suspend def extract(url: String): Result<MediaInfo> {
+    override suspend fun extract(url: String): Result<MediaInfo> {
         return Result.failure(
             UnsupportedOperationException("On-device yt-dlp native binary fallback queued for Phase 2 integration.")
         )
