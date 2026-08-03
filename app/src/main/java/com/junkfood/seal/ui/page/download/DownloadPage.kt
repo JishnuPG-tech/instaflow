@@ -193,16 +193,24 @@ fun DownloadPage(
         }
     }
 
+    var showInstagramFlow by rememberSaveable { mutableStateOf(false) }
+
     val downloadCallback: () -> Unit = {
         view.slightHapticFeedback()
         keyboardController?.hide()
-        if (NOTIFICATION.getBoolean() && notificationPermission?.status?.isGranted == false) {
-            showNotificationDialog = true
-        }
-        if (CONFIGURE.getBoolean()) {
-            showDownloadDialog = true
+        val normalized = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
+        val igParseResult = com.junkfood.seal.util.InstagramUrlValidator.parseUrl(normalized)
+        if (igParseResult.isValid) {
+            showInstagramFlow = true
         } else {
-            checkPermissionOrDownload()
+            if (NOTIFICATION.getBoolean() && notificationPermission?.status?.isGranted == false) {
+                showNotificationDialog = true
+            }
+            if (CONFIGURE.getBoolean()) {
+                showDownloadDialog = true
+            } else {
+                checkPermissionOrDownload()
+            }
         }
     }
 
@@ -348,6 +356,17 @@ fun DownloadPage(
             onDownloadConfirm = { checkPermissionOrDownload() },
             onDismissRequest = { showDownloadDialog = false },
         )
+
+        if (showInstagramFlow) {
+            val normalized = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
+            com.junkfood.seal.features.instagram.navigation.InstagramNavigation(
+                url = normalized,
+                onNavigateBack = {
+                    showInstagramFlow = false
+                    homePageViewModel.updateUrl("")
+                }
+            )
+        }
     }
 }
 
