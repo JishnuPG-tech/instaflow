@@ -47,7 +47,6 @@ android {
     kotlinOptions {
         jvmTarget = "17"
         freeCompilerArgs += listOf(
-            "-opt-in=androidx.compose.material3.ExperimentalMaterial3ExpressiveApi",
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
         )
     }
@@ -88,10 +87,11 @@ dependencies {
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // Room DB
+    // Room DB & DataStore
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
 
     // Networking
     implementation(libs.retrofit)

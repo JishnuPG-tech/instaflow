@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.instasave.app.core.download.DownloadQueueManager
 import com.instasave.app.core.network.generated.api.InstaSaveApi
+import com.instasave.app.core.network.generated.model.MediaFormat
 import com.instasave.app.core.network.generated.model.ResolveRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,13 +54,14 @@ class HomeViewModel @Inject constructor(
         resolveCurrentUrl()
     }
 
-    private fun triggerDownload(format: com.instasave.app.core.network.generated.model.MediaFormat) {
+    private fun triggerDownload(format: MediaFormat) {
         val media = _uiState.value.resolvedMedia ?: return
+        val downloadUrl = format.url ?: return
         val isVideo = media.type == "video" || media.type == "reel"
         val fileName = "InstaSave_${System.currentTimeMillis()}.${format.ext}"
         
         downloadQueueManager.enqueueDownload(
-            url = format.url,
+            url = downloadUrl,
             fileName = fileName,
             mimeType = if (isVideo) "video/mp4" else "image/jpeg",
             isVideo = isVideo
@@ -79,14 +81,24 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isResolving = true, error = null) }
             try {
-                val mediaInfo = api.resolveMedia(ResolveRequest(url = currentUrl))
-                val initialIndices = mediaInfo.carouselItems?.indices?.toSet() ?: emptySet()
-                _uiState.update {
-                    it.copy(
-                        isResolving = false,
-                        resolvedMedia = mediaInfo,
-                        selectedCarouselIndices = initialIndices
-                    )
+                val response = api.resolveMedia(ResolveRequest(url = currentUrl))
+                if (response.isSuccessful && response.body() != null) {
+                    val mediaInfo = response.body()!!
+                    val initialIndices = mediaInfo.items?.indices?.toSet() ?: emptySet()
+                    _uiState.update {
+                        it.copy(
+                            isResolving = false,
+                            resolvedMedia = mediaInfo,
+                            selectedCarouselIndices = initialIndices
+                        )
+                    }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            isResolving = false,
+                            error = "Failed to resolve media: HTTP ${response.code()}"
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 _uiState.update {

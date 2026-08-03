@@ -8,6 +8,7 @@ data class MediaFormat(
     @SerialName("formatId") val formatId: String,
     @SerialName("label") val label: String,
     @SerialName("ext") val ext: String,
+    @SerialName("url") val url: String? = null,
     @SerialName("vcodec") val vcodec: String? = null,
     @SerialName("acodec") val acodec: String? = null,
     @SerialName("height") val height: Int? = null,

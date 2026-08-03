@@ -1,6 +1,5 @@
 package com.instasave.app.ui.picker
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +30,8 @@ fun FormatPickerBottomSheet(
     onFormatSelected: (MediaFormat) -> Unit,
     onDismissRequest: () -> Unit
 ) {
+    val formats = mediaInfo.formats ?: emptyList()
+
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
         containerColor = TrueBlack,
@@ -61,7 +62,7 @@ fun FormatPickerBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                items(mediaInfo.formats) { format ->
+                items(formats) { format ->
                     FormatCard(
                         format = format,
                         onClick = { onFormatSelected(format) }

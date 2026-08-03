@@ -216,18 +216,18 @@ private fun HomeContent(
                         )
                     }
 
-                    // Carousel Slides Grid if media is carousel
-                    if (!media.carouselItems.isNullOrEmpty()) {
+                    val items = media.items
+                    if (!items.isNullOrEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Carousel Slides (${uiState.selectedCarouselIndices.size}/${media.carouselItems.size} Selected)",
+                            text = "Carousel Slides (${uiState.selectedCarouselIndices.size}/${items.size} Selected)",
                             style = MaterialTheme.typography.labelLarge,
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         CarouselItemGrid(
-                            items = media.carouselItems,
+                            items = items,
                             selectedIndices = uiState.selectedCarouselIndices,
                             onToggleItem = { index -> onEvent(HomeUiEvent.ToggleCarouselItem(index)) }
                         )

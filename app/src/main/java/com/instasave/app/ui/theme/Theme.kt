@@ -1,8 +1,7 @@
 package com.instasave.app.ui.theme
 
 import android.app.Activity
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.material3.Material3ExpressiveTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -31,7 +30,7 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun InstaSaveTheme(
-    darkTheme: Boolean = true, // Default to true-black dark theme for AMOLED efficiency
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = DarkColorScheme
@@ -46,10 +45,9 @@ fun InstaSaveTheme(
         }
     }
 
-    Material3ExpressiveTheme(
+    MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        shapes = Shapes,
         content = content
     )
 }

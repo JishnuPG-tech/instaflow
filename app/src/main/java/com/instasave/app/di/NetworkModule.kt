@@ -33,7 +33,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://jishnupg-tech-instaflow.hf.space/") // Source of truth backend / local fallback
+            .baseUrl("https://jishnupg-tech-instaflow.hf.space/")
             .client(okHttpClient)
             .addConverterFactory(ScalarsConverterFactory.create())
             .build()
@@ -42,6 +42,6 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideInstaSaveApi(retrofit: Retrofit): InstaSaveApi {
-        return InstaSaveApi(baseUrl = "https://jishnupg-tech-instaflow.hf.space/", client = retrofit.callFactory() as OkHttpClient)
+        return retrofit.create(InstaSaveApi::class.java)
     }
 }

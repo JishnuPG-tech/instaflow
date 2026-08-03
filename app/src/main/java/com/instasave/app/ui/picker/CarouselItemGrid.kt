@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.instasave.app.core.network.generated.model.CarouselItem
@@ -56,7 +55,6 @@ fun CarouselItemGrid(
                 colors = CardDefaults.cardColors(containerColor = SurfaceVariantDark)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Placeholder icon indicator
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -65,21 +63,20 @@ fun CarouselItemGrid(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Icon(
-                            imageVector = if (item.mediaType == CarouselItem.MediaType.video) Icons.Default.Videocam else Icons.Default.Image,
-                            contentDescription = item.mediaType.value,
+                            imageVector = if (item.type == "video") Icons.Default.Videocam else Icons.Default.Image,
+                            contentDescription = item.type,
                             tint = InstagramCoral,
                             modifier = Modifier.size(36.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Item ${index + 1} (${item.mediaType.value.uppercase()})",
+                            text = "Item ${index + 1} (${item.type.uppercase()})",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // Selection Checkbox Pill
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
