@@ -154,6 +154,7 @@ object DownloadUtil {
                         addOption("-x")
                     }
                     applyFormatSorter(this@with, toFormatSorter())
+                    applyInstagramHeaders(url)
                     if (cookies) {
                         enableCookies(userAgentString)
                     }
@@ -354,6 +355,17 @@ object DownloadUtil {
                     mergeToMkv =
                         (downloadSubtitle && embedSubtitle) || MERGE_OUTPUT_MKV.getBoolean(),
                 )
+            }
+        }
+    }
+
+    private fun YoutubeDLRequest.applyInstagramHeaders(url: String): YoutubeDLRequest = apply {
+        if (url.contains("instagram.com")) {
+            addOption("--referer", "https://www.instagram.com/")
+            addOption("--add-header", "Accept-Language:en-US,en;q=0.9")
+            val cookiesFile = context.getCookiesFile()
+            if (cookiesFile.exists() && cookiesFile.length() > 0) {
+                addOption("--cookies", cookiesFile.absolutePath)
             }
         }
     }
@@ -684,7 +696,7 @@ object DownloadUtil {
             request
                 .apply {
                     addOption("--no-mtime")
-                    //                addOption("-v")
+                    applyInstagramHeaders(url)
                     if (cookies) {
                         enableCookies(userAgentString)
                     }
