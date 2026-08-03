@@ -47,7 +47,7 @@ fun InstaSaveTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography,
+        typography = InstaSaveTypography,
         content = content
     )
 }

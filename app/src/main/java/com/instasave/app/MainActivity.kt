@@ -17,7 +17,7 @@ class MainActivity : ComponentActivity() {
     private val homeViewModel: HomeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
         handleIncomingIntent(intent)
 
         setContent {
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
         if (Intent.ACTION_SEND == action && type != null) {
             if ("text/plain" == type) {
                 val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-                if (!sharedText.isNull_Empty()) {
+                if (!sharedText.isNullOrEmpty()) {
                     val extractedUrl = extractInstagramUrl(sharedText)
                     if (extractedUrl != null) {
                         homeViewModel.handleSharedUrl(extractedUrl)
@@ -50,8 +50,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-    private fun String?.isNull_Empty(): Boolean = this == null || this.trim().isEmpty()
 
     private fun extractInstagramUrl(text: String): String? {
         val pattern = Pattern.compile("https?://(www\\.)?instagram\\.com/[^\\s]+")
