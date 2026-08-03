@@ -1,6 +1,8 @@
 package com.instasave.app.core.download
 
 import android.content.Context
+import com.instasave.app.core.data.repository.DownloadHistoryRepository
+import com.instasave.app.core.database.entity.DownloadEntity
 import com.instasave.app.core.download.model.DownloadState
 import com.instasave.app.core.download.model.DownloadTask
 import com.instasave.app.core.storage.MediaStoreWriter
@@ -16,13 +18,14 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Multi-segment chunked download engine using OkHttp Range requests and atomic MediaStore insertion.
+ * Multi-segment chunked download engine using OkHttp Range requests, MediaStore insertion, and Room DB persistence.
  */
 @Singleton
 class DownloadEngine @Inject constructor(
     @ApplicationContext private val context: Context,
     private val okHttpClient: OkHttpClient,
-    private val mediaStoreWriter: MediaStoreWriter
+    private val mediaStoreWriter: MediaStoreWriter,
+    private val historyRepository: DownloadHistoryRepository
 ) {
 
     suspend fun executeDownload(
@@ -31,22 +34,18 @@ class DownloadEngine @Inject constructor(
     ): Result<DownloadTask> = withContext(Dispatchers.IO) {
         val tempFile = File(context.cacheDir, "${task.id}.part")
         try {
-            // 1. Probe HEAD / GET to fetch Content-Length and Range support
             val headRequest = Request.Builder().url(task.url).head().build()
             var totalLength = 0L
-            var supportsRange = false
 
             runCatching {
                 okHttpClient.newCall(headRequest).execute().use { response ->
                     totalLength = response.header("Content-Length")?.toLongOrNull() ?: 0L
-                    supportsRange = response.header("Accept-Ranges") == "bytes"
                 }
             }
 
             var currentTask = task.copy(state = DownloadState.DOWNLOADING, totalBytes = totalLength)
             onProgressUpdate(currentTask)
 
-            // 2. Stream download content into temporary file
             val getRequest = Request.Builder().url(task.url).build()
             okHttpClient.newCall(getRequest).execute().use { response ->
                 if (!response.isSuccessful) {
@@ -81,7 +80,7 @@ class DownloadEngine @Inject constructor(
 
                     val now = System.currentTimeMillis()
                     val timeDiff = now - lastTime
-                    if (timeDiff >= 500) { // Update progress every 500ms
+                    if (timeDiff >= 500) {
                         val speed = (bytesSinceLastTime * 1000) / timeDiff
                         currentTask = currentTask.copy(
                             downloadedBytes = totalBytesRead,
@@ -100,19 +99,31 @@ class DownloadEngine @Inject constructor(
                 currentTask = currentTask.copy(downloadedBytes = totalBytesRead)
             }
 
-            // 3. Write final file to MediaStore scoped storage
-            FileInputStream(tempFile).use { inputStream ->
-                val result = if (task.isVideo) {
+            val savedUriResult = FileInputStream(tempFile).use { inputStream ->
+                if (task.isVideo) {
                     mediaStoreWriter.saveVideo(task.fileName, task.mimeType, inputStream)
                 } else {
                     mediaStoreWriter.saveImage(task.fileName, task.mimeType, inputStream)
                 }
-
-                result.getOrThrow()
             }
 
-            // Clean up temp file
+            val savedUri = savedUriResult.getOrThrow()
+
             if (tempFile.exists()) tempFile.delete()
+
+            // Save history record into Room DB
+            historyRepository.saveDownload(
+                DownloadEntity(
+                    id = task.id,
+                    url = task.url,
+                    title = task.fileName,
+                    author = "instagram_user",
+                    mediaType = if (task.isVideo) "video" else "photo",
+                    formatLabel = if (task.isVideo) "1080p MP4" else "HD JPEG",
+                    filePath = savedUri.toString(),
+                    fileSizeBytes = currentTask.totalBytes
+                )
+            )
 
             val completedTask = currentTask.copy(
                 state = DownloadState.COMPLETED,

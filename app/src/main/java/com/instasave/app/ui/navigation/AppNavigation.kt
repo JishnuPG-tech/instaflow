@@ -6,9 +6,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.instasave.app.ui.downloads.DownloadsScreen
+import com.instasave.app.ui.history.HistoryScreen
 import com.instasave.app.ui.home.HomeScreen
-import com.instasave.app.ui.placeholder.HistoryScreen
-import com.instasave.app.ui.placeholder.SettingsScreen
+import com.instasave.app.ui.settings.SettingsScreen
 
 @Composable
 fun AppNavigation(
