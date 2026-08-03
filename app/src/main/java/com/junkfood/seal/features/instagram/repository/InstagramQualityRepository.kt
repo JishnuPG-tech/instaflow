@@ -18,7 +18,7 @@ object InstagramQualityRepository {
         val durationSec = info.duration?.toInt() ?: 0
         val author = info.uploader?.ifEmpty { info.channel } ?: "instagram_user"
         val captionText = info.title ?: ""
-        val thumbUrl = info.thumbnail ?: info.thumbnails?.firstOrNull()?.url ?: ""
+        val thumbUrl = info.thumbnail ?: ""
 
         val rawFormats = info.formats ?: emptyList()
         val mappedFormats = mapRawFormats(rawFormats, durationSec)
@@ -64,11 +64,12 @@ object InstagramQualityRepository {
         val audioStreams = rawFormats.filter { it.acodec != "none" && it.acodec != null && (it.vcodec == "none" || it.vcodec == null) }
 
         // Map best video resolutions
-        val sortedVideo = videoStreams.sortedByDescending { (it.height ?: 0) * (it.width ?: 0) }
+        val sortedVideo = videoStreams.sortedByDescending { (it.height ?: 0.0) * (it.width ?: 0.0) }
 
         val seenHeights = mutableSetOf<Int>()
         for (format in sortedVideo) {
-            val h = format.height ?: 0
+            val h = format.height?.toInt() ?: 0
+            val w = format.width?.toInt() ?: 0
             if (h <= 0) continue
 
             val bucketHeight = when {
@@ -82,7 +83,7 @@ object InstagramQualityRepository {
                 seenHeights.add(bucketHeight)
 
                 val label = when (bucketHeight) {
-                    1080 -> "Original (${format.width ?: 1080}p)"
+                    1080 -> "Original (${if (w > 0) w else 1080}p)"
                     720 -> "720p HD"
                     480 -> "480p SD"
                     else -> "360p"
@@ -94,8 +95,8 @@ object InstagramQualityRepository {
                     InstagramFormat(
                         formatId = format.formatId ?: "mp4_$bucketHeight",
                         resolutionLabel = label,
-                        width = format.width ?: 0,
-                        height = format.height ?: bucketHeight,
+                        width = w,
+                        height = if (h > 0) h else bucketHeight,
                         ext = format.ext ?: "mp4",
                         fileSizeApprox = sizeBytes,
                         isAudioOnly = false
@@ -125,8 +126,8 @@ object InstagramQualityRepository {
     }
 
     private fun calculateSizeBytes(format: Format, durationSeconds: Int): Long {
-        if ((format.filesize ?: 0L) > 0L) return format.filesize!!
-        if ((format.filesizeApprox ?: 0L) > 0L) return format.filesizeApprox!!
+        val size = format.fileSize?.toLong() ?: format.fileSizeApprox?.toLong() ?: 0L
+        if (size > 0L) return size
 
         val tbr = format.tbr ?: ((format.vbr ?: 0.0) + (format.abr ?: 0.0))
         if (tbr > 0.0 && durationSeconds > 0) {
