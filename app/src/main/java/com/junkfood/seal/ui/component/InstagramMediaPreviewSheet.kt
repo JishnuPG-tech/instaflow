@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -244,7 +245,7 @@ fun InstagramMediaPreviewSheet(
                             Box(modifier = Modifier.fillMaxSize()) {
                                 AsyncImage(
                                     model = ImageRequest.Builder(LocalContext.current)
-                                        .data(item.displayUrl.ifEmpty { item.videoUrl })
+                                        .data(item.thumbnailUrl.ifEmpty { item.downloadUrl })
                                         .crossfade(true)
                                         .build(),
                                     contentDescription = "Item ${index + 1}",
