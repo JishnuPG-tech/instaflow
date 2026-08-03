@@ -2,6 +2,7 @@ package com.instasave.app.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.instasave.app.core.download.DownloadQueueManager
 import com.instasave.app.core.network.generated.api.InstaSaveApi
 import com.instasave.app.core.network.generated.model.ResolveRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,7 +15,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val api: InstaSaveApi
+    private val api: InstaSaveApi,
+    private val downloadQueueManager: DownloadQueueManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -41,7 +43,7 @@ class HomeViewModel @Inject constructor(
             }
             is HomeUiEvent.FormatSelected -> {
                 _uiState.update { it.copy(selectedFormat = event.format) }
-                // Triggers download pipeline in Phase 4
+                triggerDownload(event.format)
             }
         }
     }
@@ -49,6 +51,22 @@ class HomeViewModel @Inject constructor(
     fun handleSharedUrl(url: String) {
         _uiState.update { it.copy(urlInput = url) }
         resolveCurrentUrl()
+    }
+
+    private fun triggerDownload(format: com.instasave.app.core.network.generated.model.MediaFormat) {
+        val media = _uiState.value.resolvedMedia ?: return
+        val isVideo = media.type == "video" || media.type == "reel"
+        val fileName = "InstaSave_${System.currentTimeMillis()}.${format.ext}"
+        
+        downloadQueueManager.enqueueDownload(
+            url = format.url,
+            fileName = fileName,
+            mimeType = if (isVideo) "video/mp4" else "image/jpeg",
+            isVideo = isVideo
+        )
+
+        // Dismiss sheet
+        _uiState.update { it.copy(resolvedMedia = null, selectedFormat = null) }
     }
 
     private fun resolveCurrentUrl() {
