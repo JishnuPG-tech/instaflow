@@ -71,7 +71,7 @@ class HomePageViewModel : ViewModel(), KoinComponent {
         }
 
         // Instagram-First Interception: Replace Seal format/playlist pickers for Instagram URLs
-        val parsedIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parse(url)
+        val parsedIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parseUrl(url)
         if (parsedIgUrl.isValid) {
             viewModelScope.launch(Dispatchers.IO) { fetchInfoForInstagramSheet(url, parsedIgUrl) }
             return
@@ -97,13 +97,27 @@ class HomePageViewModel : ViewModel(), KoinComponent {
                 Downloader.updateState(State.Idle)
                 when (info) {
                     is PlaylistResult -> {
-                        val items = com.junkfood.seal.util.InstagramCarouselItemParser.parseEntries(info.entries)
+                        val items = info.entries?.mapIndexed { index, entry ->
+                            com.junkfood.seal.database.InstagramMediaItem(
+                                id = entry.id ?: "${parseResult.shortcode}_$index",
+                                shortcode = parseResult.shortcode ?: "",
+                                mediaType = com.junkfood.seal.database.InstagramMediaType.IMAGE,
+                                downloadUrl = entry.url ?: "",
+                                thumbnailUrl = entry.thumbnails?.firstOrNull()?.url ?: entry.url ?: "",
+                                authorUsername = info.uploader ?: parseResult.username ?: "instagram_user",
+                                caption = info.title,
+                                isVideo = false,
+                                carouselIndex = index,
+                                totalCarouselItems = info.entries?.size ?: 1,
+                            )
+                        } ?: emptyList()
+
                         mutableViewStateFlow.update {
                             it.copy(
                                 showInstagramPreviewSheet = true,
-                                instagramAuthor = info.uploader ?: parseResult.shortcode ?: "instagram_user",
+                                instagramAuthor = info.uploader ?: parseResult.username ?: "instagram_user",
                                 instagramCaption = info.title ?: "",
-                                instagramThumbnail = items.firstOrNull()?.displayUrl ?: "",
+                                instagramThumbnail = items.firstOrNull()?.thumbnailUrl ?: "",
                                 instagramItems = items,
                                 isInstagramCarousel = true,
                             )
@@ -113,9 +127,9 @@ class HomePageViewModel : ViewModel(), KoinComponent {
                         mutableViewStateFlow.update {
                             it.copy(
                                 showInstagramPreviewSheet = true,
-                                instagramAuthor = info.uploader ?: parseResult.shortcode ?: "instagram_user",
+                                instagramAuthor = info.uploader ?: parseResult.username ?: "instagram_user",
                                 instagramCaption = info.title ?: "",
-                                instagramThumbnail = info.thumbnailUrl ?: "",
+                                instagramThumbnail = info.thumbnail ?: "",
                                 instagramItems = emptyList(),
                                 isInstagramCarousel = false,
                                 targetVideoInfo = info,
@@ -149,20 +163,24 @@ class HomePageViewModel : ViewModel(), KoinComponent {
     fun downloadInstagramSelectedItems(selectedItems: List<com.junkfood.seal.database.InstagramMediaItem>) {
         hideInstagramPreviewSheet()
         val prefs = DownloadUtil.DownloadPreferences.createFromPreferences()
+        val author = viewStateFlow.value.instagramAuthor
         selectedItems.forEachIndexed { index, item ->
-            val itemUrl = item.videoUrl.ifEmpty { item.displayUrl }
+            val itemUrl = item.downloadUrl
             if (itemUrl.isNotEmpty()) {
                 val task = com.junkfood.seal.download.Task(
                     url = itemUrl,
                     preferences = prefs,
-                ).apply {
-                    viewState = viewState.copy(
-                        title = "(@${viewStateFlow.value.instagramAuthor}) Item ${index + 1} of ${selectedItems.size}",
-                        thumbnailUrl = item.displayUrl,
-                        uploader = viewStateFlow.value.instagramAuthor,
-                    )
-                }
-                downloader.enqueue(task, com.junkfood.seal.download.Task.State.Idle)
+                )
+                val initialState = com.junkfood.seal.download.Task.State(
+                    downloadState = com.junkfood.seal.download.Task.DownloadState.Idle,
+                    videoInfo = null,
+                    viewState = com.junkfood.seal.download.Task.ViewState(
+                        title = "(@$author) Item ${index + 1} of ${selectedItems.size}",
+                        thumbnailUrl = item.thumbnailUrl,
+                        uploader = author,
+                    ),
+                )
+                downloader.enqueue(task, initialState)
             }
         }
         ToastUtil.makeToast("Enqueued ${selectedItems.size} items for download")
