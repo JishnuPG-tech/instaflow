@@ -209,8 +209,6 @@ fun DownloadPage(
         }
     }
 
-    var showInstagramFlow by rememberSaveable { mutableStateOf(false) }
-
     val downloadCallback: () -> Unit = {
         view.slightHapticFeedback()
         keyboardController?.hide()
