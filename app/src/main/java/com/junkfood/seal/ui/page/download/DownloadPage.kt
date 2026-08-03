@@ -149,15 +149,12 @@ fun DownloadPage(
 
     var showInstagramFlow by rememberSaveable { mutableStateOf(false) }
 
-    val normalizedUrl = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
-    val isIgUrl = com.junkfood.seal.util.InstagramUrlValidator.parseUrl(normalizedUrl).isValid
-
-    if (showInstagramFlow || (isIgUrl && viewState.url.isNotEmpty())) {
+    if (showInstagramFlow) {
+        val normalizedUrl = com.junkfood.seal.features.instagram.url.InstagramUrlNormalizer.normalize(viewState.url)
         com.junkfood.seal.features.instagram.navigation.InstagramNavigation(
             url = normalizedUrl,
             onNavigateBack = {
                 showInstagramFlow = false
-                homePageViewModel.updateUrl("")
             }
         )
         return
