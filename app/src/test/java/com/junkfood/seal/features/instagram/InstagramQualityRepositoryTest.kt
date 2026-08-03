@@ -13,8 +13,8 @@ class InstagramQualityRepositoryTest {
     @Test
     fun testFormatMappingHidesDashAndUnknown() {
         val dummyFormats = listOf(
-            Format(formatId = "dash-1230206290181168v", vcodec = "vp09", acodec = "none", width = 1080, height = 810, filesize = 18000000L),
-            Format(formatId = "dash-1230155340186263a", vcodec = "none", acodec = "mp4a", filesize = 3000000L),
+            Format(formatId = "dash-1230206290181168v", vcodec = "vp09", acodec = "none", width = 1080.0, height = 810.0, fileSize = 18000000.0),
+            Format(formatId = "dash-1230155340186263a", vcodec = "none", acodec = "mp4a", fileSize = 3000000.0),
             Format(formatId = "3", vcodec = "unknown", acodec = "unknown")
         )
 
