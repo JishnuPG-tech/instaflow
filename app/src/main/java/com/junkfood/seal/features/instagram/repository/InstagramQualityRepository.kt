@@ -7,6 +7,7 @@ import com.junkfood.seal.features.instagram.models.InstagramUiModel
 import com.junkfood.seal.util.Format
 import com.junkfood.seal.util.VideoInfo
 import java.util.Locale
+import kotlin.math.max
 
 object InstagramQualityRepository {
 
@@ -70,12 +71,13 @@ object InstagramQualityRepository {
         for (format in sortedVideo) {
             val h = format.height?.toInt() ?: 0
             val w = format.width?.toInt() ?: 0
-            if (h <= 0) continue
+            if (h <= 0 && w <= 0) continue
 
+            val maxDim = max(h, w)
             val bucketHeight = when {
-                h >= 1080 -> 1080
-                h >= 720 -> 720
-                h >= 480 -> 480
+                maxDim >= 1080 -> 1080
+                maxDim >= 720 -> 720
+                maxDim >= 480 -> 480
                 else -> 360
             }
 
