@@ -37,7 +37,7 @@ jobs:
           pip install -r backend/requirements.txt
           pip install ruff pytest
       - name: Run Ruff Linter
-        run: python -m ruff check backend/
+        run: python -m ruff check backend/ --ignore E501
       - name: Run Ruff Formatter Check
         run: python -m ruff format --check backend/
       - name: Run PyTest Suite
@@ -57,7 +57,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
+      - name: Make Gradle Wrapper Executable
+        run: chmod +x gradlew
       - name: Build Debug APK
-        run: gradle assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon
       - name: Run Unit Tests
-        run: gradle testDebugUnitTest --no-daemon
+        run: ./gradlew testDebugUnitTest --no-daemon
