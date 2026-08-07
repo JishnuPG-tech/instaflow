@@ -882,6 +882,29 @@ object DownloadUtil {
                         Throwable("Invalid or empty media URL")
                     )
             }
+
+            // Check if InstaFlow v2 Remote Processing Engine server is active
+            if (RemoteProcessingEngine.isServerAvailable()) {
+                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url")
+                val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
+                val remoteResult = RemoteProcessingEngine.downloadMedia(
+                    context = context,
+                    urlStr = url,
+                    downloadDir = downloadDir,
+                    itemIndex = playlistItem,
+                    videoInfo = videoInfo,
+                    progressCallback = progressCallback
+                )
+                if (remoteResult.isSuccess) {
+                    val paths = remoteResult.getOrThrow()
+                    if (!privateMode) {
+                        insertInfoIntoDownloadHistory(videoInfo, paths)
+                    }
+                    return Result.success(if (privateMode) emptyList() else paths)
+                }
+                Log.w(TAG, "[Pipeline] Remote Processing Engine failed. Falling back to local engine...")
+            }
+
             Log.i(TAG, "[Pipeline] Executing YoutubeDLRequest for target URL: '$url'")
             val request = YoutubeDLRequest(url)
             val pathBuilder = StringBuilder()
