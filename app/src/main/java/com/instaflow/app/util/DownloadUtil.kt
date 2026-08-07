@@ -1077,7 +1077,7 @@ object DownloadUtil {
 
             Log.d(TAG, "onFinishDownloading: $fileName")
             
-            // Move verified finalized files from internal cache directory to public download directory (Excludes temporary DASH fragments)
+            val movedFiles = mutableListOf<String>()
             val internalOutDir = File(context.cacheDir, "downloads")
             if (internalOutDir.exists()) {
                 internalOutDir.listFiles()?.forEach { file ->
@@ -1089,12 +1089,27 @@ object DownloadUtil {
                             targetFile.parentFile?.mkdirs()
                             file.copyTo(targetFile, overwrite = true)
                             file.delete()
+                            movedFiles.add(targetFile.absolutePath)
                             Log.i(TAG, "[Pipeline] Successfully moved validated file from internal cache to public download path: ${targetFile.absolutePath}")
                         } catch (e: Exception) {
                             Log.w(TAG, "[Pipeline] Safe file mover note for ${file.name}: ${e.message}")
                         }
                     }
                 }
+            }
+
+            if (movedFiles.isNotEmpty()) {
+                android.media.MediaScannerConnection.scanFile(context, movedFiles.toTypedArray(), null) { path, uri ->
+                    Log.i(TAG, "[Storage] MediaScanner indexed moved file: $path -> $uri")
+                }
+                if (!privateMode) {
+                    if (splitByChapter) {
+                        insertSplitChapterIntoHistory(videoInfo, movedFiles)
+                    } else {
+                        insertInfoIntoDownloadHistory(videoInfo, movedFiles)
+                    }
+                }
+                return Result.success(if (privateMode) emptyList() else movedFiles)
             }
 
             if (sdcard) {
