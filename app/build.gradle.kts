@@ -10,7 +10,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.room)
     alias(libs.plugins.ktfmt.gradle)
 }
 
@@ -44,7 +43,7 @@ android {
     buildFeatures { buildConfig = true }
 
     defaultConfig {
-        applicationId = "com.junkfood.seal"
+        applicationId = "com.instaflow.app"
         minSdk = 24
         targetSdk = 35
         versionCode = 200_000_150
@@ -68,8 +67,11 @@ android {
         }
     }
 
-    room { schemaDirectory("$projectDir/schemas") }
-    ksp { arg("room.incremental", "true") }
+    // room { schemaDirectory("schemas") }
+    ksp {
+        arg("room.incremental", "true")
+        arg("room.schemaLocation", "$projectDir/schemas")
+    }
 
     androidComponents {
         onVariants { variant ->
@@ -114,7 +116,7 @@ android {
             }
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            resValue("string", "app_name", "Seal Debug")
+            resValue("string", "app_name", "InstaFlow Debug")
         }
     }
 
@@ -129,7 +131,7 @@ android {
         create("githubPreview") {
             dimension = "publishChannel"
             applicationIdSuffix = ".preview"
-            resValue("string", "app_name", "Seal Preview")
+            resValue("string", "app_name", "InstaFlow Preview")
         }
 
         create("fdroid") {
@@ -143,7 +145,7 @@ android {
     applicationVariants.all {
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "Seal-${defaultConfig.versionName}-${name}.apk"
+                "InstaFlow-${defaultConfig.versionName}-${name}.apk"
         }
     }
 
@@ -155,7 +157,7 @@ android {
     }
     androidResources { generateLocaleConfig = true }
 
-    namespace = "com.junkfood.seal"
+    namespace = "com.instaflow.app"
 }
 
 ktfmt { kotlinLangStyle() }

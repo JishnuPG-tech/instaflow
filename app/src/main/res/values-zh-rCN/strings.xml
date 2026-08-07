@@ -127,7 +127,7 @@
     <string name="permission_issue_desc">无法下载到除 Download/ 及 Documents/ 以外的目录</string>
     <string name="battery_configuration">后台下载设置</string>
     <string name="battery_configuration_desc">允许本应用在后台运行以在后台进行下载</string>
-    <string name="service_title">Seal 正在进行下载…</string>
+    <string name="service_title">InstaFlow 正在进行下载…</string>
     <string name="unknown_error">出现不可预知的错误</string>
     <string name="translate">翻译</string>
     <string name="translate_desc">在 Weblate 上帮助我们翻译此应用</string>
@@ -174,8 +174,8 @@
     <string name="app_update_failed">更新过程中出现错误</string>
     <string name="update">更新</string>
     <string name="aria2_desc">使用 aria2c 下载器进行下载</string>
-    <string name="cookies">Cookies</string>
-    <string name="cookies_desc">使用 Netscape 规范的 Cookies 文件进行下载</string>
+    <string name="accounts">Instagram 账户</string>
+    <string name="accounts_desc">管理已连接的 Instagram 账户</string>
     <string name="clear_temp_files">清除临时文件</string>
     <string name="clear_temp_files_desc">删除临时目录下的所有临时文件</string>
     <string name="clear_temp_files_count">共清除了 %1$d 个临时文件</string>
@@ -217,12 +217,12 @@
     <string name="suggested">推荐</string>
     <string name="format_selection">格式选择</string>
     <string name="format_selection_desc">在开始下载前选择要下载的格式</string>
-    <string name="generate_new_cookies">生成新的 Cookies</string>
-    <string name="use_cookies">启用 Cookies</string>
-    <string name="remove_cookie_profile_desc">删除 \"%1$s\" 的此条目？请注意这不会清理此站点的 cookies 文件。</string>
+    <string name="connect_account">连接 Instagram 账户</string>
+    <string name="stay_logged_in">保持登录状态</string>
+    <string name="remove_account_session_desc">删除 \"%1$s\" 的此登录会话？请注意这不会清理此站点的 cookies 文件。</string>
     <string name="custom_command_enabled_hint">部分选项在自定义命令模式下不可用</string>
     <string name="how_does_it_work">使用说明</string>
-    <string name="cookies_usage_msg">从某些站点下载需要帐户验证信息。 点击“生成新的 Cookies”，输入网站的 URL，然后在浏览器页面使用你的账户登录，应用将会自动生成并在下载时输入认证信息。</string>
+    <string name="accounts_usage_msg">从私有账户或受限帖子下载需要连接你的 Instagram 账户。点击“连接 Instagram 账户”，在内置的安全浏览器中登录，应用将自动获取登录会话。</string>
     <string name="telegram_channel">Telegram 频道</string>
     <string name="matrix_space">Matrix 空间</string>
     <string name="sdcard_directory">SD 卡目录</string>
@@ -275,12 +275,12 @@
     <string name="import_from_preferences">从设置导入</string>
     <string name="rename">重命名</string>
     <string name="minute">分</string>
-    <string name="clear_all_cookies">清除所有 Cookies</string>
-    <string name="clear_all_cookies_desc">确定要删除储存在应用中的所有 Cookies 吗？</string>
+    <string name="disconnect_all_accounts">断开所有账户连接</string>
+    <string name="disconnect_all_accounts_desc">确定要断开储存在应用中的所有 Instagram 账户吗？</string>
     <string name="temporary_directory_desc">将临时文件储存在内部目录中</string>
     <string name="sponsor">赞助</string>
     <string name="sponsor_desc">在 GitHub 上赞助以支持本应用</string>
-    <string name="sponsor_msg">Seal 将永远保持免费与开源，如果你想要支持它的持续开发与改进，请考虑在 GitHub 上赞助我！</string>
+    <string name="sponsor_msg">InstaFlow 将永远保持免费与开源，如果你想要支持它的持续开发与改进，请考虑在 GitHub 上赞助我！</string>
     <string name="feedback">反馈</string>
     <string name="sponsors">赞助</string>
     <string name="no_downloaded_media">下载记录空空如也</string>
@@ -289,7 +289,7 @@
     <string name="clip_video_desc">在格式选择页面进行视频剪辑</string>
     <string name="clip_video_dialog_msg">该功能将使用 FFmpeg 以下载选定部分的视频，该功能仍处于试验阶段，剪辑不会完全准确，且并非所有格式都支持该功能，使用该功能时的下载速度将会显著减慢。</string>
     <string name="audio_format">音频格式</string>
-    <string name="auto_update_disabled_msg">%1$s 版本无法使用自动更新，如果你的设备并未安装 %1$s，或想要升级到测试版本以提前体验 Seal 中即将加入的新功能，请考虑 %2$s。</string>
+    <string name="auto_update_disabled_msg">%1$s 版本无法使用自动更新，如果你的设备并未安装 %1$s，或想要升级到测试版本以提前体验 InstaFlow 中即将加入的新功能，请考虑 %2$s。</string>
     <string name="switch_to_github_builds">切换至 GitHub 版本</string>
     <string name="okay">好</string>
     <string name="got_it">好</string>
@@ -333,12 +333,12 @@
         <item quantity="other">%d 个项目</item>
     </plurals>
     <string name="remove_multiple_templates_msg">要从命令模板中移除 %1$s吗？</string>
-    <string name="refresh_cookies_desc">点击打开网页以刷新 cookies：</string>
+    <string name="refresh_accounts_desc">轻按以连接或切换账户：</string>
     <string name="ua_header">用户代理</string>
     <string name="export_to_file">导出到文件</string>
-    <string name="custom_command_usage_msg">yt-dlp 是一款强大的命令行视频下载工具。通过提供直观的图形用户界面（GUI）、 常见命令行的预设以及其他附加功能，Seal 使该工具更易使用。
+    <string name="custom_command_usage_msg">yt-dlp 是一款强大的命令行视频下载工具。通过提供直观的图形用户界面（GUI）、 常见命令行的预设以及其他附加功能，InstaFlow 使该工具更易使用。
 \n
-\n对于 yt-dlp 的高级用法，Seal 允许你直接创建、保存并执行自定义的命令行模板，就像在命令行终端上操作一样。
+\n对于 yt-dlp 的高级用法，InstaFlow 允许你直接创建、保存并执行自定义的命令行模板，就像在命令行终端上操作一样。
 \n
 \n使用自定义命令行时，多数 GUI 选项和功能会被禁用。</string>
     <string name="presets">预设</string>
@@ -403,7 +403,7 @@
     <string name="download_archive_error">此视频已被下载。如果这不是预期的行为，请检查你的下载存档。</string>
     <string name="remux_container_mkv">视频封装容器</string>
     <string name="remux_container_mkv_desc">封装视频至 MKV 容器，改进兼容性</string>
-    <string name="cookies_in_database">共 %1$d 个 cookies，来自 %2$d 个站点</string>
+    <string name="accounts_in_database">共 %1$d 个项目</string>
     <string name="every_day">每天</string>
     <string name="every_week">每周</string>
     <string name="every_month">每月</string>

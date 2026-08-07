@@ -29,7 +29,7 @@
     </queries>
 
     <application
-        android:name=".App"
+        android:name="com.instaflow.app.App"
         android:allowBackup="true"
         android:enableOnBackInvokedCallback="true"
         android:extractNativeLibs="true"
@@ -40,17 +40,17 @@
         android:supportsRtl="true"
         tools:targetApi="tiramisu">
         <activity
-            android:name=".CrashReportActivity"
+            android:name="com.instaflow.app.CrashReportActivity"
             android:exported="false"
             android:label="CrashReportActivity"
-            android:theme="@style/Theme.Seal" />
+            android:theme="@style/Theme.InstaFlow" />
         <activity
-            android:name=".QuickDownloadActivity"
+            android:name="com.instaflow.app.QuickDownloadActivity"
             android:excludeFromRecents="true"
             android:exported="true"
             android:label="@string/title_activity_share"
             android:launchMode="singleInstance"
-            android:theme="@style/Theme.Seal.Dialog">
+            android:theme="@style/Theme.InstaFlow.Dialog">
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
 
@@ -72,18 +72,18 @@
         </activity>
 
         <service
-            android:name=".DownloadService"
+            android:name="com.instaflow.app.DownloadService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="specialUse" />
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.instaflow.app.MainActivity"
             android:configChanges="orientation"
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="unspecified"
-            android:theme="@style/Theme.Seal">
+            android:theme="@style/Theme.InstaFlow">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -128,7 +128,7 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
-        <receiver android:name=".NotificationActionReceiver" />
+        <receiver android:name="com.instaflow.app.NotificationActionReceiver" />
     </application>
 
 </manifest>

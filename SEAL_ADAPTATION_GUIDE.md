@@ -48,7 +48,7 @@ Every subsystem in the Seal repository is classified into one of 6 operational c
 - **Evidence in Code**: [`DownloadSettingsDialog.kt`](file:///C:/Users/JISHNU%20PG/Music/InstaFlow/InstaFlow/app/src/main/java/com/junkfood/seal/ui/page/download/DownloadSettingsDialog.kt) presents generic audio/video codec options (MP4, WEBM, MP3, OPUS, 1080p, 720p).
 - **Adaptation Rationale**: Instagram media does not offer separate audio/video codec options or YouTube resolution ladders. Replace with an Instagram Media Previewer & Carousel Picker allowing individual item selection from mixed posts.
 
-### F. Cookie Management (`CookiesViewModel.kt`, `CookieProfile.kt`)
+### F. Account Management (`AccountsViewModel.kt`, `AccountProfile.kt`)
 - **Classification**: **KEEP** & **MODIFY**
-- **Evidence in Code**: [`CookieProfile.kt`](file:///C:/Users/JISHNU%20PG/Music/InstaFlow/InstaFlow/app/src/main/java/com/junkfood/seal/database/objects/CookieProfile.kt) stores Netscape formatted cookie text.
-- **Adaptation Rationale**: Keep Netscape cookie injection engine. Modify UI to provide an inline Instagram Webview login helper to automatically grab session cookies (`sessionid`, `ds_user_id`, `csrftoken`).
+- **Evidence in Code**: [`AccountProfile.kt`](file:///C:/Users/JISHNU%20PG/Music/InstaFlow/InstaFlow/app/src/main/java/com/instaflow/app/database/objects/AccountProfile.kt) stores Netscape formatted session account text.
+- **Adaptation Rationale**: Keep Netscape cookie injection engine. Modify UI to provide an inline Instagram Webview login helper to automatically grab session accounts (`sessionid`, `ds_user_id`, `csrftoken`).

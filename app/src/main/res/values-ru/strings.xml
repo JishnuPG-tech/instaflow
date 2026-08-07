@@ -54,7 +54,7 @@
     <string name="download_directory_desc">Выберите место для хранения видео- и аудио-файлов</string>
     <string name="permission_issue">Запрет доступа к хранилищу</string>
     <string name="battery_configuration">Настройки энергопотребления</string>
-    <string name="service_title">Seal скачивает…</string>
+    <string name="service_title">InstaFlow скачивает…</string>
     <string name="unknown_error">Неизвестная ошибка</string>
     <string name="translate">Перевод</string>
     <string name="translate_desc">Помогите с переводом на Hosted Weblate</string>

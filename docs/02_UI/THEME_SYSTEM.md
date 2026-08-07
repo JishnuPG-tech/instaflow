@@ -2,11 +2,11 @@
 
 ## 1. Subsystem Overview
 
-The theme system in Seal manages dark/light mode preference switching, Amoled pure-black theme support, and dynamic accent color generation.
+The theme system in InstaFlow manages dark/light mode preference switching, Amoled pure-black theme support, and dynamic accent color generation.
 
 ```mermaid
 graph TD
-    Pref[PreferenceUtil: Theme / Accent / PureBlack] --> ThemeComposable[SealTheme.kt]
+    Pref[PreferenceUtil: Theme / Accent / PureBlack] --> ThemeComposable[InstaFlowTheme.kt]
     ThemeComposable --> SystemCheck{Android 12+ & Dynamic Colors enabled?}
     SystemCheck -->|Yes| DynamicPalette[dynamicLightColorScheme / dynamicDarkColorScheme]
     SystemCheck -->|No| ColorModule[Color Module HSL Generator]

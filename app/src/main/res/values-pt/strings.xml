@@ -145,7 +145,7 @@
     <string name="battery_configuration">Configuração da bateria</string>
     <string name="from">Iniciar</string>
     <string name="battery_configuration_desc">Ignorar a otimização da bateria para que esta aplicação faça descarga em segundo plano</string>
-    <string name="service_title">O Seal está a descarregar…</string>
+    <string name="service_title">O InstaFlow está a descarregar…</string>
     <string name="unknown_error">Erro desconhecido</string>
     <string name="translate">Traduzir</string>
     <string name="prefix">Prefixo</string>

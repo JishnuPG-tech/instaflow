@@ -12,11 +12,11 @@ kotlin {
     jvmToolchain(21)
 }
 android {
-    compileSdk = 34
+    compileSdk = 35
     defaultConfig {
         minSdk = 21
     }
-    namespace = "com.junkfood.seal.color"
+    namespace = "com.instaflow.app.color"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         sourceCompatibility = JavaVersion.VERSION_1_8
