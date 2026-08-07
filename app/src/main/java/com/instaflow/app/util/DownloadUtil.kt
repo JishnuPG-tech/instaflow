@@ -628,8 +628,10 @@ object DownloadUtil {
                             addOption("--audio-multistreams")
                         }
                     } else {
-                        Log.i(TAG, "[Pipeline] No format selected — omitting -f for Instagram to allow auto photo/video format resolution.")
-                        if (!isInstagram) {
+                        if (isInstagram) {
+                            Log.i(TAG, "[Pipeline] Instagram video format resolution — applying bestvideo+bestaudio/best selector for FFmpeg DASH audio merge")
+                            addOption("-f", "bestvideo+bestaudio/best")
+                        } else {
                             applyFormatSorter(this, toFormatSorter())
                         }
                     }
@@ -949,17 +951,10 @@ object DownloadUtil {
 
                     addOption("--socket-timeout", "15")
 
-                    val isInstagram = url.contains("instagram") || url.contains("fbcdn.net")
-                    val hasVideoFormats = videoInfo.formats?.any { it.vcodec != "none" && it.vcodec != null && !it.vcodec.contains("none") } ?: false
-                    val hasRequestedVideo = videoInfo.requestedDownloads?.any { it.vcodec != "none" && it.vcodec != null && !it.vcodec.contains("none") } ?: false
-                    val isVcodecNone = videoInfo.vcodec == "none" || videoInfo.vcodec == null
-                    val isImageExt = setOf("jpg", "jpeg", "png", "webp", "heic").contains(videoInfo.ext?.lowercase())
-                    val hasDuration = (videoInfo.duration ?: 0.0) > 0.0
+                    val isInstagram = url.contains("instagram") || url.contains("fbcdn.net") || videoInfo.extractorKey == "Instagram"
+                    val isImage = MediaClassifier.isImageMedia(videoInfo, url)
                     
-                    // Pure Metadata-Driven Classification (Zero URL assumptions)
-                    val isImage = (!hasVideoFormats && !hasRequestedVideo) || (isVcodecNone && isImageExt && !hasDuration)
-                    
-                    Log.d(TAG, "[Pipeline Telemetry] Metadata Check: id=${videoInfo.id}, hasVideoFormats=$hasVideoFormats, hasRequestedVideo=$hasRequestedVideo, vcodec=${videoInfo.vcodec}, ext=${videoInfo.ext}, isImage=$isImage")
+                    Log.d(TAG, "[Pipeline Telemetry] Single Source of Truth Classification: id=${videoInfo.id}, isImage=$isImage")
 
                     if (extractAudio || (videoInfo.vcodec == "none" && !isInstagram && !isImage)) {
                         if (privateDirectory) pathBuilder.append(App.privateDownloadDir)
@@ -1082,19 +1077,21 @@ object DownloadUtil {
 
             Log.d(TAG, "onFinishDownloading: $fileName")
             
-            // Move files from internal cache directory to target public download directory if needed
+            // Move verified finalized files from internal cache directory to public download directory (Excludes temporary DASH fragments)
             val internalOutDir = File(context.cacheDir, "downloads")
             if (internalOutDir.exists()) {
                 internalOutDir.listFiles()?.forEach { file ->
-                    if (file.isFile) {
+                    val name = file.name.lowercase()
+                    val isFragment = name.contains(".fdash") || name.endsWith(".part") || name.endsWith(".ytdl") || name.endsWith(".tmp") || name.endsWith(".temp") || name.matches(Regex(".*\\.f[0-9]+\\..*"))
+                    if (file.isFile && !isFragment && file.length() > 0L) {
                         try {
                             val targetFile = File(downloadPath, file.name)
                             targetFile.parentFile?.mkdirs()
                             file.copyTo(targetFile, overwrite = true)
                             file.delete()
-                            Log.i(TAG, "[Pipeline] Successfully moved completed file from internal cache to public download path: ${targetFile.absolutePath}")
+                            Log.i(TAG, "[Pipeline] Successfully moved validated file from internal cache to public download path: ${targetFile.absolutePath}")
                         } catch (e: Exception) {
-                            Log.e(TAG, "[Pipeline] Failed to move internal file ${file.name} to public storage: ${e.message}")
+                            Log.w(TAG, "[Pipeline] Safe file mover note for ${file.name}: ${e.message}")
                         }
                     }
                 }

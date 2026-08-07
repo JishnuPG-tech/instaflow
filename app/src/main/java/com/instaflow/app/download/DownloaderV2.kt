@@ -212,8 +212,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             taskStateMap[this] = prevState.copy(viewState = value)
         }
 
+    private val notificationIdMap = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val notificationIdCounter = java.util.concurrent.atomic.AtomicInteger(1000)
+
     private val Task.notificationId: Int
-        get() = id.hashCode()
+        get() = notificationIdMap.getOrPut(id) { notificationIdCounter.incrementAndGet() }
 
     /** Processes pending tasks, prioritizing downloads. */
     private fun doYourWork() {

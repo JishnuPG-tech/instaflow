@@ -123,19 +123,22 @@ object FileUtil {
 
         val now = System.currentTimeMillis()
         val validFiles = dir.walkTopDown()
-            .filter { it.isFile }
+            .filter { it.isFile && it.length() > 0L }
             .filter { file ->
                 val name = file.name.lowercase()
+                !name.contains(".fdash") &&
+                !name.matches(Regex(".*\\.f[0-9]+\\..*")) &&
                 !name.endsWith(".part") && 
                 !name.endsWith(".ytdl") && 
                 !name.endsWith(".tmp") && 
+                !name.endsWith(".temp") &&
                 !name.startsWith(".") &&
                 !name.endsWith(".nomedia") &&
                 !name.endsWith(".json")
             }
             .filter { file ->
                 val matchesTitle = title.isNotBlank() && file.name.contains(title, ignoreCase = true)
-                val isRecent = (now - file.lastModified()) < 15 * 60 * 1000 // 15 minutes
+                val isRecent = (now - file.lastModified()) < 60 * 1000 // 60 seconds tight window
                 matchesTitle || isRecent
             }
             .sortedByDescending { it.lastModified() }
