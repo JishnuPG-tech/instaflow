@@ -434,7 +434,11 @@ object DownloadUtil {
             addOption("--referer", "https://www.instagram.com/")
             addOption("--add-header", "Accept-Language:en-US,en;q=0.9")
             // Modern compatible User-Agent
-            addOption("--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+            addOption("--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+            addOption("--add-header", "Sec-Ch-Ua: \"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+            addOption("--add-header", "Sec-Ch-Ua-Mobile: ?0")
+            addOption("--add-header", "Sec-Ch-Ua-Platform: \"Windows\"")
+            addOption("--add-header", "Origin: https://www.instagram.com")
             addOption("--add-header", "X-IG-App-ID:936619743392459")
             addOption("--add-header", "X-ASBD-ID:129477")
             addOption("--add-header", "X-IG-WWW-Claim:0")
@@ -447,13 +451,12 @@ object DownloadUtil {
             addOption("--geo-bypass")
             addOption("-4")
             
-            val accountsFile = context.getAccountSessionFile()
-            if (!accountsFile.exists() || accountsFile.length() == 0L) {
+            val sessionFile = context.getAccountSessionFile()
+            if (!sessionFile.exists() || sessionFile.length() == 0L) {
                 if (!syncWebViewCookiesToFile()) {
-                    ensureDefaultCookiesConfigured(context)
+                    ensureDefaultCookiesConfigured()
                 }
             }
-            val sessionFile = context.getAccountSessionFile()
             if (sessionFile.exists() && sessionFile.length() > 0) {
                 Log.d(TAG, "[Pipeline] Passing Instagram session cookies file to yt-dlp: ${sessionFile.length()} bytes")
                 addOption("--cookies", sessionFile.absolutePath)
@@ -463,31 +466,10 @@ object DownloadUtil {
         }
     }
 
-    fun ensureDefaultCookiesConfigured(context: android.content.Context) {
-        try {
-            val sessionFile = context.getAccountSessionFile()
-            if (!sessionFile.exists() || sessionFile.length() == 0L) {
-                val defaultCookies = """# Netscape HTTP Cookie File
-# http://curl.haxx.se/rfc/cookie_spec.html
-
-.instagram.com	TRUE	/	TRUE	2147483647	datr	P_DDaZfKu6jFkVi3JMOp-Tv9
-.instagram.com	TRUE	/	TRUE	2147483647	ig_did	4F8D1B08-C1A7-4E92-8576-36FF377E6FBD
-.instagram.com	TRUE	/	TRUE	2147483647	mid	acPwPwALAAGMuSpuPxHFE00DS2rx
-.instagram.com	TRUE	/	TRUE	2147483647	ps_l	1
-.instagram.com	TRUE	/	TRUE	2147483647	ps_n	1
-.instagram.com	TRUE	/	TRUE	2147483647	csrftoken	nVO2rgY3me7iDzhUqCXvCyKlWFlE0Ayz
-.instagram.com	TRUE	/	TRUE	2147483647	ds_user_id	36496086985
-.instagram.com	TRUE	/	TRUE	2147483647	dpr	1.5
-.instagram.com	TRUE	/	TRUE	2147483647	sessionid	36496086985%3ArLtjmPdKBMWDP5%3A8%3AAYjDKzrswVpJe59w1Hymd-mAyHjKpWuwGHuGShU-hA
-.instagram.com	TRUE	/	TRUE	2147483647	wd	728x591
-.instagram.com	TRUE	/	TRUE	2147483647	rur	"HIL\05436496086985\0541817643105:01ff5001b192a8025ce65c64a7e015f6a24e66c1a8eb43d4a39f4d958130608656dbf655"
-"""
-                FileUtil.writeContentToFile(defaultCookies, sessionFile)
-                Log.i(TAG, "[CookieSync] Pre-configured session cookies written to ${sessionFile.absolutePath}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "[CookieSync] Error writing default cookies: ${e.message}")
-        }
+    fun ensureDefaultCookiesConfigured() {
+        // Removed hardcoded stale cookies to prevent account flagging and challenges.
+        // Guest mode or a fresh login via the app's browser is more reliable than using expired sessions.
+        Log.i(TAG, "[CookieSync] No local cookies found. Proceeding in guest mode.")
     }
 
     private fun YoutubeDLRequest.enableAccountSession(userAgentString: String): YoutubeDLRequest =
@@ -513,10 +495,26 @@ object DownloadUtil {
         return try {
             val cookieManager = CookieManager.getInstance()
             cookieManager.flush()
-            val igCookies = cookieManager.getCookie("https://www.instagram.com")
-                ?: cookieManager.getCookie("https://instagram.com")
+            
+            // Collect cookies from multiple Instagram-related domains to be exhaustive
+            val domains = listOf(
+                "https://www.instagram.com",
+                "https://instagram.com",
+                "https://i.instagram.com",
+                "https://help.instagram.com"
+            )
+            
+            val allCookies = mutableMapOf<String, String>()
+            domains.forEach { domain ->
+                cookieManager.getCookie(domain)?.split(";")?.forEach { entry ->
+                    val parts = entry.trim().split("=", limit = 2)
+                    if (parts.size == 2) {
+                        allCookies[parts[0].trim()] = parts[1].trim()
+                    }
+                }
+            }
 
-            if (igCookies.isNullOrBlank()) {
+            if (allCookies.isEmpty()) {
                 Log.d(TAG, "[CookieSync] CookieManager returned no Instagram cookies.")
                 return false
             }
@@ -525,22 +523,15 @@ object DownloadUtil {
             sb.append("# Netscape HTTP Cookie File\n")
             sb.append("# http://curl.haxx.se/rfc/cookie_spec.html\n")
 
-            var count = 0
-            igCookies.split(";").forEach { entry ->
-                val parts = entry.trim().split("=", limit = 2)
-                if (parts.size == 2) {
-                    val name = parts[0].trim()
-                    val value = parts[1].trim()
-                    if (name.isNotEmpty()) {
-                        sb.append(".instagram.com\tTRUE\t/\tTRUE\t2147483647\t$name\t$value\n")
-                        count++
-                    }
+            allCookies.forEach { (name, value) ->
+                if (name.isNotEmpty()) {
+                    sb.append(".instagram.com\tTRUE\t/\tTRUE\t2147483647\t$name\t$value\n")
                 }
             }
 
             val sessionFile = context.getAccountSessionFile()
             FileUtil.writeContentToFile(sb.toString(), sessionFile)
-            Log.i(TAG, "[CookieSync] Successfully exported $count cookies to ${sessionFile.absolutePath} (${sessionFile.length()} bytes)")
+            Log.i(TAG, "[CookieSync] Successfully exported ${allCookies.size} unique cookies to ${sessionFile.absolutePath}")
             true
         } catch (e: Exception) {
             Log.e(TAG, "[CookieSync] Error syncing cookies: ${e.message}")

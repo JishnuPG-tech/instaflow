@@ -31,11 +31,23 @@ object MediaClassifier {
         val isImageExt = setOf("jpg", "jpeg", "png", "webp", "heic").contains(videoInfo.ext?.lowercase())
         val hasDuration = (videoInfo.duration ?: 0.0) > 0.0
 
-        val isImage = (!hasVideoFormats && !hasRequestedVideo) || (isVcodecNone && isImageExt && !hasDuration)
-
         val type = when {
-            isImage -> MediaType.IMAGE
-            isInstagram && (url.contains("/reel/") || (hasDuration && videoInfo.duration != null && videoInfo.duration <= 90.0)) -> MediaType.REEL
+            // Explicit Reels always take priority
+            isInstagram && (url.contains("/reel/") || url.contains("/reels/")) -> MediaType.REEL
+
+            // If we have clear video signals, it's a VIDEO (or REEL if short)
+            hasVideoFormats || hasRequestedVideo || hasDuration -> {
+                if (isInstagram && videoInfo.duration != null && videoInfo.duration <= 90.0) MediaType.REEL
+                else MediaType.VIDEO
+            }
+
+            // If it looks like an image, it's an IMAGE
+            isImageExt && isVcodecNone -> MediaType.IMAGE
+
+            // Fallback for Instagram: if no video signals and not a Reel URL, assume IMAGE for posts
+            isInstagram && !url.contains("/reel/") -> MediaType.IMAGE
+
+            // Default fallback
             else -> MediaType.VIDEO
         }
 

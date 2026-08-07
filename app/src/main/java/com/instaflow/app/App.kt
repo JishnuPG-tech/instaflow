@@ -91,7 +91,7 @@ class App : Application() {
                 YoutubeDL.init(this@App)
                 FFmpeg.init(this@App)
                 Aria2c.init(this@App)
-                DownloadUtil.ensureDefaultCookiesConfigured(this@App)
+                DownloadUtil.ensureDefaultCookiesConfigured()
                 DownloadUtil.getAccountsContentFromDatabase().getOrNull()?.let {
                     FileUtil.writeContentToFile(it, getAccountSessionFile())
                 }
