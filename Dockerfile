@@ -1,4 +1,4 @@
-# HuggingFace Spaces & Docker VPS Dockerfile for InstaFlow v2
+# HuggingFace Spaces Dockerfile for InstaFlow v2
 FROM python:3.12-slim
 
 # Install system dependencies (FFmpeg, Curl, Ca-certificates)
@@ -20,13 +20,12 @@ ENV HOME=/home/user \
 
 WORKDIR $HOME/app
 
-# Copy requirements and install Python dependencies
-COPY --chown=user:user requirements.txt $HOME/app/requirements.txt
+# Copy application files
+COPY --chown=user:user backend/requirements.txt $HOME/app/requirements.txt
 RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Copy application files
-COPY --chown=user:user . $HOME/app/backend
-COPY --chown=user:user ../cookies.txt $HOME/app/cookies.txt
+COPY --chown=user:user backend $HOME/app/backend
+COPY --chown=user:user cookies.txt $HOME/app/cookies.txt
 
 # Ensure temporary directory has write permissions
 RUN mkdir -p /tmp/instaflow_downloads && chown -R user:user /tmp/instaflow_downloads $HOME
