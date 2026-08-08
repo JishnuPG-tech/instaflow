@@ -465,8 +465,6 @@ object DownloadUtil {
             addOption("--add-header", "X-Requested-With:XMLHttpRequest")
             addOption("--extractor-args", "instagram:check_video=False")
             addOption("--no-check-certificates")
-            addOption("--allow-unplayable-formats")
-            addOption("--ignore-no-formats-error")
             addOption("--no-warning")
             addOption("--geo-bypass")
             addOption("-4")
