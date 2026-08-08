@@ -536,8 +536,15 @@ fun ActionButton(
             }
         }
         is Completed -> {
-            PlayVideoButton(modifier = modifier) {
-                onActionPost(UiAction.OpenFile(downloadState.filePath))
+            val filePath = downloadState.filePath ?: ""
+            val ext = filePath.substringAfterLast('.', "").lowercase()
+            val isImage = ext in listOf("jpg", "jpeg", "png", "webp")
+            if (!isImage) {
+                PlayVideoButton(modifier = modifier) {
+                    onActionPost(UiAction.OpenFile(downloadState.filePath))
+                }
+            } else {
+                Spacer(modifier = Modifier)
             }
         }
         is FetchingInfo,

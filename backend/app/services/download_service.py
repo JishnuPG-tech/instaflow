@@ -62,7 +62,7 @@ class DownloadService:
             cmd.extend(["--ffmpeg-location", os.path.dirname(ffmpeg_bin)])
             
         cmd.extend(["--merge-output-format", "mp4"])
-        cmd.extend(["-f", "bestvideo+bestaudio/best"])
+        cmd.extend(["-f", "bestvideo[vcodec^=avc1]+bestaudio/bestvideo+bestaudio/best"])
         
         if item_index and item_index > 0:
             cmd.extend(["--playlist-items", str(item_index)])

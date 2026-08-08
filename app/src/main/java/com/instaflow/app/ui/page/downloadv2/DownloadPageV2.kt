@@ -714,17 +714,8 @@ fun SubHeader(
     onToggleView: () -> Unit,
     onShowMenu: () -> Unit,
 ) {
-    val text = buildString {
-        if (videoCount > 0) {
-            append(pluralStringResource(R.plurals.video_count, videoCount).format(videoCount))
-            if (audioCount > 0) {
-                append(", ")
-            }
-        }
-        if (audioCount > 0) {
-            append(pluralStringResource(R.plurals.audio_count, audioCount).format(audioCount))
-        }
-    }
+    val totalCount = videoCount + audioCount
+    val text = if (totalCount == 1) "1 item" else "$totalCount items"
 
     Row(
         modifier = modifier.padding(top = 12.dp, bottom = 12.dp),
