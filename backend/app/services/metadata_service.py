@@ -1,9 +1,7 @@
 import os
-import sys
-import json
-import subprocess
 import logging
 from typing import Dict, Any, List
+import yt_dlp
 from backend.app.core.config import settings
 from backend.app.utils.media import normalize_instagram_url
 from backend.app.models.response import ErrorCode
@@ -22,44 +20,68 @@ class MetadataService:
             args.extend(["--cookies", settings.COOKIES_FILE])
         return args
 
+    @staticmethod
+    def get_ydl_opts(extract_flat: bool = False) -> Dict[str, Any]:
+        opts: Dict[str, Any] = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "extract_flat": extract_flat,
+            "cachedir": False,
+            "force_ipv4": True,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Referer": "https://www.instagram.com/",
+                "X-IG-App-ID": "936619743392459",
+            }
+        }
+        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            opts["cookiefile"] = settings.COOKIES_FILE
+        return opts
+
     @classmethod
     def fetch_metadata(cls, url: str) -> Dict[str, Any]:
         norm_url = normalize_instagram_url(url)
-        cmd = [
-            sys.executable, "-m", "yt_dlp",
-            "--dump-single-json",
-            "-4",
-            "--no-playlist"
-        ] + cls.get_ig_headers() + [norm_url]
-
-        logger.info(f"Fetching yt-dlp metadata for {norm_url}")
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
         
-        if res.returncode != 0:
-            err = res.stderr
-            logger.warning(f"Primary yt-dlp metadata extraction failed: {err[:200]}. Retrying fallback...")
-            # Fallback attempt without cookies or extra headers if cookies are corrupted/expired
-            cmd_fallback = [
-                sys.executable, "-m", "yt_dlp",
-                "--dump-single-json",
-                "-4",
-                "--no-playlist",
-                "--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                norm_url
-            ]
-            res_fb = subprocess.run(cmd_fallback, capture_output=True, text=True)
-            if res_fb.returncode == 0:
-                try:
-                    return json.loads(res_fb.stdout)
-                except Exception:
-                    pass
-
-            logger.error(f"yt-dlp metadata extraction failed: {err}")
-            if "No video formats found" in err or "Login required" in err:
-                raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
-            raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err[:200]}")
-
+        opts = cls.get_ydl_opts()
         try:
-            return json.loads(res.stdout)
-        except Exception as e:
-            raise RuntimeError(f"{ErrorCode.INTERNAL_ERROR.value}: Failed to parse JSON metadata: {e}")
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(norm_url, download=False)
+                if info:
+                    return ydl.sanitize_info(info)
+        except Exception as err:
+            err_str = str(err)
+            logger.warning(f"Primary yt-dlp metadata extraction failed: {err_str[:200]}. Retrying fallback...")
+            
+            # Fallback options without cookies file in case cookies expired/corrupted
+            fb_opts: Dict[str, Any] = {
+                "quiet": True,
+                "no_warnings": True,
+                "skip_download": True,
+                "cachedir": False,
+                "force_ipv4": True,
+                "http_headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                }
+            }
+            try:
+                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                    info_fb = ydl_fb.extract_info(norm_url, download=False)
+                    if info_fb:
+                        return ydl_fb.sanitize_info(info_fb)
+            except Exception as fb_err:
+                logger.error(f"yt-dlp fallback metadata extraction failed: {fb_err}")
+                
+            if "Login required" in err_str or "No video formats" in err_str:
+                raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
+            elif "Private account" in err_str or "private" in err_str.lower():
+                raise ValueError(ErrorCode.PRIVATE_POST.value)
+            elif "429" in err_str or "Too Many Requests" in err_str:
+                raise ValueError(ErrorCode.RATE_LIMITED.value)
+            elif "404" in err_str or "Not Found" in err_str:
+                raise ValueError(ErrorCode.NOT_FOUND.value)
+            else:
+                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
+                
+        raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: Failed to extract media metadata")

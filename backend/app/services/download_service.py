@@ -1,14 +1,14 @@
 import os
-import sys
-import subprocess
 import urllib.request
 import logging
+import re
 from typing import Optional, Dict, Any
+import yt_dlp
+from backend.app.core.config import settings
 from backend.app.services.metadata_service import MetadataService
 from backend.app.services.ffmpeg_service import FFmpegService
 from backend.app.services.validation_service import ValidationService
 from backend.app.utils.media import normalize_instagram_url
-from backend.app.utils.filename import sanitize_filename
 from backend.app.models.response import ErrorCode
 
 logger = logging.getLogger("DownloadService")
@@ -26,7 +26,7 @@ class DownloadService:
     ) -> str:
         norm_url = normalize_instagram_url(url)
         
-        # Check Strategy 1: Direct Photo CDN Download
+        # Strategy 1: Direct Photo CDN Download
         if item_entry and not audio_only:
             img_url = item_entry.get("thumbnail") or item_entry.get("url")
             if not img_url and item_entry.get("thumbnails"):
@@ -55,22 +55,43 @@ class DownloadService:
                 ValidationService.validate_file(target_path, is_video=False)
                 return target_path
 
-        # Strategy 2: Audio Only vs Full Video Download
+        # Strategy 2: In-Memory Native yt-dlp Video / Audio Download
         out_tmpl = os.path.join(task_dir, "InstaFlow_%(title).100s.%(ext)s")
-        cmd = [sys.executable, "-m", "yt_dlp", "-4", "-o", out_tmpl]
         
+        ydl_opts: Dict[str, Any] = {
+            "outtmpl": out_tmpl,
+            "quiet": True,
+            "no_warnings": True,
+            "cachedir": False,
+            "force_ipv4": True,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Referer": "https://www.instagram.com/",
+                "X-IG-App-ID": "936619743392459",
+            }
+        }
+        
+        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            ydl_opts["cookiefile"] = settings.COOKIES_FILE
+            
         ffmpeg_bin = FFmpegService.get_ffmpeg_binary()
         if ffmpeg_bin:
-            cmd.extend(["--ffmpeg-location", ffmpeg_bin])
+            ydl_opts["ffmpeg_location"] = ffmpeg_bin
 
         is_audio = audio_only or (requested_format and ("audio" in requested_format.lower() or "m4a" in requested_format.lower()))
-        
+
         if is_audio:
-            logger.info("Executing Audio-Only Extraction")
-            cmd.extend(["-x", "--audio-format", "m4a", "-f", "bestaudio/best"])
+            logger.info("Executing Audio-Only Extraction via native yt-dlp")
+            ydl_opts.update({
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "m4a",
+                    "preferredquality": "192",
+                }]
+            })
         else:
-            logger.info("Executing Full Video Download with Audio Muxing")
-            cmd.extend(["--merge-output-format", "mp4"])
+            logger.info("Executing Full Video Download via native yt-dlp")
             fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"
             if requested_format:
                 req_lower = requested_format.lower().strip()
@@ -87,42 +108,62 @@ class DownloadService:
                 else:
                     fmt_str = f"b[ext=mp4]/best[ext=mp4]/{requested_format}/best"
 
-            cmd.extend(["-f", fmt_str])
-        
+            ydl_opts.update({
+                "format": fmt_str,
+                "merge_output_format": "mp4"
+            })
+
         if item_index and item_index > 0:
-            cmd.extend(["--playlist-items", str(item_index)])
+            ydl_opts["playlist_items"] = str(item_index)
         else:
-            cmd.append("--no-playlist")
-            
-        cmd.extend(MetadataService.get_ig_headers())
-        cmd.append(norm_url)
-        
-        logger.info(f"Executing yt-dlp command: {' '.join(cmd)}")
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        
-        if res.returncode != 0:
-            logger.warning(f"Explicit format failed: {res.stderr[:200]}. Retrying progressive fallback...")
-            cmd_fallback = [sys.executable, "-m", "yt_dlp", "-4", "-o", out_tmpl]
+            ydl_opts["noplaylist"] = True
+
+        try:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([norm_url])
+        except Exception as err:
+            err_str = str(err)
+            logger.warning(f"Primary yt-dlp in-memory download failed: {err_str[:200]}. Retrying fallback...")
+            fb_opts: Dict[str, Any] = {
+                "outtmpl": out_tmpl,
+                "quiet": True,
+                "no_warnings": True,
+                "cachedir": False,
+                "force_ipv4": True,
+                "http_headers": {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                }
+            }
             if ffmpeg_bin:
-                cmd_fallback.extend(["--ffmpeg-location", ffmpeg_bin])
+                fb_opts["ffmpeg_location"] = ffmpeg_bin
             if item_index and item_index > 0:
-                cmd_fallback.extend(["--playlist-items", str(item_index)])
+                fb_opts["playlist_items"] = str(item_index)
             else:
-                cmd_fallback.append("--no-playlist")
+                fb_opts["noplaylist"] = True
             
             if is_audio:
-                cmd_fallback.extend(["-x", "--audio-format", "m4a", "-f", "bestaudio/best"])
+                fb_opts.update({
+                    "format": "bestaudio/best",
+                    "postprocessors": [{
+                        "key": "FFmpegExtractAudio",
+                        "preferredcodec": "m4a",
+                        "preferredquality": "192",
+                    }]
+                })
             else:
-                cmd_fallback.extend(["-f", "b/best"])
+                fb_opts.update({
+                    "format": "b/best",
+                    "merge_output_format": "mp4"
+                })
                 
-            cmd_fallback.extend(MetadataService.get_ig_headers())
-            cmd_fallback.append(norm_url)
-            res = subprocess.run(cmd_fallback, capture_output=True, text=True)
-            if res.returncode != 0:
-                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {res.stderr[:200]}")
+            try:
+                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                    ydl_fb.download([norm_url])
+            except Exception as fb_err:
+                logger.error(f"yt-dlp fallback download failed: {fb_err}")
+                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
 
         # Scan task_dir for valid completed output files
-        import re
         all_entries = [f for f in os.listdir(task_dir) if not f.startswith(".")]
         
         clean_files = []

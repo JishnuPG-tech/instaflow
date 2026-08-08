@@ -332,7 +332,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
                 })
                 delay(300)
 
-                // Step 3: Reading metadata & formats (one yt-dlp call)
+                // Step 3: Reading metadata (Calling yt-dlp)
                 updateAnalyzingSteps(initialSteps.mapIndexed { i, s ->
                     when(i) {
                         0, 1 -> s.copy(status = StepStatus.COMPLETED)
@@ -348,57 +348,97 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
                 DownloadUtil.getPlaylistOrVideoInfo(playlistURL = normalized, downloadPreferences = prefs, taskKey = taskKey)
                     .onSuccess { info ->
                         val extractionMs = System.currentTimeMillis() - ytDlpStart
-                        withContext(Dispatchers.Main) {
-                            updateAnalyzingSteps(initialSteps.map { it.copy(status = StepStatus.COMPLETED) })
-                            delay(200)
-                            if (info is VideoInfo) {
-                                // Run validation; logs warnings and throws on hard errors
-                                com.instaflow.app.features.instagram.repository.InstagramQualityRepository.validateVideoInfo(info)
-                                val uiModel = com.instaflow.app.features.instagram.repository.InstagramHandlerDispatch.handle(info, urlType)
-                                
-                                val isFastMode = FAST_MODE.getBoolean()
-                                if (isFastMode && urlType != InstagramUrlType.CAROUSEL) {
-                                    Log.i(TAG, "[Pipeline] Fast Mode enabled — enqueuing best quality immediately")
-                                    val bestFormat = uiModel.videoQualityOptions.firstOrNull() ?: uiModel.audioQualityOptions.firstOrNull()
-                                    val p = prefs.copy(
-                                        formatIdString = bestFormat?.formatId ?: "",
-                                        extractAudio = bestFormat?.isAudioOnly ?: false
-                                    )
-                                    val downloadUrl = info.webpageUrl?.ifBlank { null }
-                                        ?: info.originalUrl?.ifBlank { null }
-                                        ?: normalized
-                                    downloader.enqueue(Task(url = downloadUrl, preferences = p))
-                                    hideDialog()
-                                    return@withContext
-                                }
+                        Log.i(TAG, "[Pipeline] yt-dlp OK        : ${extractionMs}ms")
 
-                                Log.i(TAG, "[Pipeline] yt-dlp OK        : ${extractionMs}ms")
-                                Log.i(TAG, "[Pipeline] Extractor        : ${info.extractorKey}")
-                                Log.i(TAG, "[Pipeline] Title            : ${info.title}")
-                                Log.i(TAG, "[Pipeline] Uploader         : ${info.uploader ?: info.channel}")
-                                Log.i(TAG, "[Pipeline] Duration         : ${info.duration}")
-                                Log.i(TAG, "[Pipeline] Formats          : ${info.formats?.size ?: 0}")
-                                Log.i(TAG, "[Pipeline] MediaType detected: ${uiModel.mediaTypeLabel}")
-                                Log.i(TAG, "[Pipeline] Quality options  : ${uiModel.videoQualityOptions.size} video, ${uiModel.audioQualityOptions.size} audio")
-                                Log.i(TAG, "[Pipeline] Thumbnail        : ${info.thumbnail?.take(80)}")
-                                Log.i(TAG, "[Pipeline] webpageUrl       : ${info.webpageUrl}")
+                        // Step 4: Reading media
+                        withContext(Dispatchers.Main) {
+                            updateAnalyzingSteps(initialSteps.mapIndexed { i, s ->
+                                when(i) {
+                                    in 0..2 -> s.copy(status = StepStatus.COMPLETED)
+                                    3 -> s.copy(status = StepStatus.IN_PROGRESS)
+                                    else -> s
+                                }
+                            })
+                        }
+                        delay(500)
+
+                        // Step 5: Reading formats
+                        withContext(Dispatchers.Main) {
+                            updateAnalyzingSteps(initialSteps.mapIndexed { i, s ->
+                                when(i) {
+                                    in 0..3 -> s.copy(status = StepStatus.COMPLETED)
+                                    4 -> s.copy(status = StepStatus.IN_PROGRESS)
+                                    else -> s
+                                }
+                            })
+                        }
+
+                        if (info is VideoInfo) {
+                            // Run validation; logs warnings and throws on hard errors
+                            com.instaflow.app.features.instagram.repository.InstagramQualityRepository.validateVideoInfo(info)
+                            val uiModel = com.instaflow.app.features.instagram.repository.InstagramHandlerDispatch.handle(info, urlType)
+                            
+                            val isFastMode = FAST_MODE.getBoolean()
+                            if (isFastMode && urlType != InstagramUrlType.CAROUSEL) {
+                                Log.i(TAG, "[Pipeline] Fast Mode enabled — enqueuing best quality immediately")
+                                val bestFormat = uiModel.videoQualityOptions.firstOrNull() ?: uiModel.audioQualityOptions.firstOrNull()
+                                val p = prefs.copy(
+                                    formatIdString = bestFormat?.formatId ?: "",
+                                    extractAudio = bestFormat?.isAudioOnly ?: false
+                                )
+                                val downloadUrl = info.webpageUrl?.ifBlank { null }
+                                    ?: info.originalUrl?.ifBlank { null }
+                                    ?: normalized
+                                downloader.enqueue(Task(url = downloadUrl, preferences = p))
+                                hideDialog()
+                                return@onSuccess
+                            }
+
+                            // Step 6: Loading preview
+                            withContext(Dispatchers.Main) {
+                                updateAnalyzingSteps(initialSteps.mapIndexed { i, s ->
+                                    when(i) {
+                                        in 0..4 -> s.copy(status = StepStatus.COMPLETED)
+                                        5 -> s.copy(status = StepStatus.IN_PROGRESS)
+                                        else -> s
+                                    }
+                                })
+                            }
+                            delay(400)
+
+                            withContext(Dispatchers.Main) {
+                                updateAnalyzingSteps(initialSteps.map { it.copy(status = StepStatus.COMPLETED) })
+                                delay(150)
                                 Log.i(TAG, "[Pipeline] Opening screen   : SINGLE PREVIEW (urlType=$urlType)")
-                                Log.i(TAG, "[Pipeline] Opening preview  : SINGLE")
                                 val targetUrl = info.webpageUrl?.ifBlank { null }
                                     ?: info.originalUrl?.ifBlank { null }
                                     ?: normalized
                                 mSheetStateFlow.update { SheetState.InstagramPreview(info, urlType, targetUrl) }
-                            } else if (info is PlaylistResult) {
-                                Log.i(TAG, "[Pipeline] yt-dlp OK        : ${extractionMs}ms")
-                                Log.i(TAG, "[Pipeline] Carousel items   : ${info.entries?.size ?: 0}")
+                            }
+                        } else if (info is PlaylistResult) {
+                            // Step 6: Loading preview
+                            withContext(Dispatchers.Main) {
+                                updateAnalyzingSteps(initialSteps.mapIndexed { i, s ->
+                                    when(i) {
+                                        in 0..4 -> s.copy(status = StepStatus.COMPLETED)
+                                        5 -> s.copy(status = StepStatus.IN_PROGRESS)
+                                        else -> s
+                                    }
+                                })
+                            }
+                            delay(400)
+
+                            withContext(Dispatchers.Main) {
+                                updateAnalyzingSteps(initialSteps.map { it.copy(status = StepStatus.COMPLETED) })
+                                delay(150)
                                 Log.i(TAG, "[Pipeline] Opening screen   : CAROUSEL PREVIEW")
-                                Log.i(TAG, "[Pipeline] Opening preview  : CAROUSEL")
                                 mSheetStateFlow.update { SheetState.InstagramCarouselPreview(info) }
                             }
-                            val totalMs = System.currentTimeMillis() - startMs
-                            Log.i(TAG, "[Pipeline] Analysis complete: ${totalMs}ms total")
-                            Log.i(TAG, "[Pipeline] ─────────────────────────────────────")
                         }
+                        
+                        val totalMs = System.currentTimeMillis() - startMs
+                        Log.i(TAG, "[Pipeline] Analysis complete: ${totalMs}ms total")
+                        Log.i(TAG, "[Pipeline] ─────────────────────────────────────")
                     }
                     .onFailure { th ->
                         val extractionMs = System.currentTimeMillis() - ytDlpStart
