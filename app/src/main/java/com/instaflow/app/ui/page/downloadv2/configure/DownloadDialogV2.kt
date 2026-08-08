@@ -662,7 +662,7 @@ private fun ConfigurePage(
         Column(modifier = modifier.padding(horizontal = 20.dp)) {
             Header(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                title = stringResource(R.string.settings_before_download),
+                title = "Configure before download",
                 icon = Icons.Outlined.DoneAll,
             )
             
@@ -1113,26 +1113,14 @@ private fun DownloadTypeSelectionGroup(
     onSelect: (DownloadType) -> Unit,
 ) {
     val typeCount = typeEntries.size
-    if (typeCount == DownloadType.entries.size) {
-        LazyRow(modifier = modifier) {
-            items(typeEntries) { type ->
-                SingleChoiceChip(
-                    selected = selectedType == type,
-                    label = type.label(),
-                    onClick = { onSelect(type) },
-                )
-            }
-        }
-    } else {
-        SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth()) {
-            typeEntries.forEachIndexed { index, type ->
-                SingleChoiceSegmentedButton(
-                    selected = selectedType == type,
-                    onClick = { onSelect(type) },
-                    shape = SegmentedButtonDefaults.itemShape(index, typeCount),
-                ) {
-                    Text(text = type.label())
-                }
+    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        typeEntries.forEachIndexed { index, type ->
+            SingleChoiceSegmentedButton(
+                selected = selectedType == type,
+                onClick = { onSelect(type) },
+                shape = SegmentedButtonDefaults.itemShape(index, typeCount),
+            ) {
+                Text(text = type.label())
             }
         }
     }

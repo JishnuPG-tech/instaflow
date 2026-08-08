@@ -44,6 +44,8 @@ fun InstaFlowModalBottomSheet(
         onDismissRequest = onDismissRequest,
         sheetState = sheetState,
         properties = properties,
+        containerColor = MaterialTheme.colorScheme.surface,
+        dragHandle = null // We use custom drag handle in InstagramMediaPreviewSheet
     ) {
         Column(modifier = Modifier.padding(paddingValues = contentPadding)) {
             content()
