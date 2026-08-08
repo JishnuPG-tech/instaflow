@@ -2,7 +2,13 @@ package com.instaflow.app.ui.page.settings.format
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.Alignment
+import com.instaflow.app.util.RES_HIGHEST
+import com.instaflow.app.util.RES_LOWEST
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -186,8 +192,8 @@ fun VideoQuickSettingsDialog(
 ) {
     InstaFlowDialog(
         onDismissRequest = onDismissRequest,
-        icon = { Icon(Icons.Outlined.VideoFile, null) },
-        title = { Text(text = stringResource(id = R.string.edit_preset)) },
+        icon = { Icon(Icons.Outlined.HighQuality, null) },
+        title = { Text(text = "Video quality") },
         dismissButton = {
             OutlinedButton(onClick = onDismissRequest) { Text(stringResource(R.string.cancel)) }
         },
@@ -198,13 +204,46 @@ fun VideoQuickSettingsDialog(
                     onDismissRequest()
                 }
             ) {
-                Text(text = stringResource(R.string.save))
+                Text(text = "Confirm")
             }
         },
         text = {
             Column {
-                LazyColumn() {
-                    item { DialogSubtitle(text = stringResource(R.string.video_format_preference)) }
+                Text(
+                    text = "Limit the video quality when multiple are present",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
+                    item {
+                        for (i in RES_HIGHEST..RES_LOWEST) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onResolutionSelect(i) }
+                                    .padding(vertical = 12.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = videoResolution == i,
+                                    onClick = { onResolutionSelect(i) }
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = PreferenceStrings.getVideoResolutionDesc(i),
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                    
+                    item {
+                        Spacer(Modifier.height(16.dp))
+                        DialogSubtitle(text = stringResource(R.string.video_format_preference))
+                    }
+                    
                     for (i in listOf(FORMAT_COMPATIBILITY, FORMAT_QUALITY)) {
                         item {
                             DialogSingleChoiceItemVariant(
@@ -216,14 +255,6 @@ fun VideoQuickSettingsDialog(
                                 onFormatSelect(i)
                             }
                         }
-                    }
-                    item { DialogSubtitle(text = stringResource(R.string.video_resolution)) }
-                    item {
-                        VideoResolutionSelectField(
-                            modifier = Modifier.padding(horizontal = 12.dp),
-                            videoResolution = videoResolution,
-                            onSelect = onResolutionSelect,
-                        )
                     }
                 }
             }

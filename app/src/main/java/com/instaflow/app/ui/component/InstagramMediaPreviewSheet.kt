@@ -152,31 +152,31 @@ fun InstagramMediaPreviewSheet(
             }
 
             Surface(
-                shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
                         imageVector = when {
                             isCarousel -> Icons.Default.PhotoLibrary
-                            mediaTypeLabel.contains("Story") -> Icons.Default.History
-                            mediaTypeLabel.contains("Profile") -> Icons.Default.Person
-                            mediaTypeLabel.contains("Video") || mediaTypeLabel.contains("Reel") -> Icons.Default.Movie
+                            mediaTypeLabel.contains("Story", ignoreCase = true) -> Icons.Default.History
+                            mediaTypeLabel.contains("Profile", ignoreCase = true) -> Icons.Default.Person
+                            mediaTypeLabel.contains("Video", ignoreCase = true) || mediaTypeLabel.contains("Reel", ignoreCase = true) -> Icons.Default.Movie
                             else -> Icons.Default.Image
                         },
                         contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (duration.isNotEmpty() && duration != "Photo") "$mediaTypeLabel • $duration" else mediaTypeLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
                     )
                 }
             }
@@ -313,8 +313,7 @@ fun InstagramMediaPreviewSheet(
                             text = "Select Quality",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(top = 4.dp)
+                            modifier = Modifier.padding(vertical = 4.dp)
                         )
                     }
 

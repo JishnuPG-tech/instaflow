@@ -18,11 +18,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -62,6 +65,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
@@ -80,6 +84,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
@@ -463,16 +468,12 @@ private fun DownloadDialogContent(
                     
                     val directUrl = entry.formats?.maxByOrNull { (it.width ?: 0.0) * (it.height ?: 0.0) }?.url
                     
-                    // For videos, we MUST use the permalink so yt-dlp can find and merge the audio stream.
-                    // For photos, direct CDN URLs are preferred to bypass extractor issues.
                     val itemUrl = if (isVideoEntry && !entryId.isNullOrBlank()) {
                         "https://www.instagram.com/p/$entryId/"
                     } else {
                         directUrl ?: entry.url ?: entry.webpageUrl ?: entry.originalUrl ?: 
                         if (!entryId.isNullOrBlank()) "https://www.instagram.com/p/$entryId/" else ""
                     }
-                    
-                    Log.d("DownloadDialogV2", "Carousel Item $index: id=$entryId, isVideo=$isVideoEntry, url=${itemUrl.take(60)}...")
                     
                     com.instaflow.app.database.InstagramMediaItem(
                         id = entryId ?: "${info.originalUrl ?: info.webpageUrl ?: "item"}_$index",
@@ -497,10 +498,6 @@ private fun DownloadDialogContent(
                     isCarousel = true,
                     onDismissRequest = { onActionPost(Action.HideSheet) },
                     onDownloadSelectedItems = { selectedItems ->
-                        // Phase 4 — Lazy carousel enqueue.
-                        // Delegate to the ViewModel which owns `downloader`.
-                        // The ViewModel calls InstagramCarouselRouter.routeFromPlaylist() and
-                        // falls back to raw-URL enqueue if the router cannot parse.
                         onActionPost(
                             Action.DownloadCarousel(
                                 playlistResult = info,
@@ -595,39 +592,6 @@ fun FormatPage(
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-/*@Preview(name = "Dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Preview(name = "Light", uiMode = Configuration.UI_MODE_NIGHT_NO)*/
-@Composable
-private fun ConfigurePagePreview() {
-    InstaFlowTheme() {
-        InstaFlowModalBottomSheet(
-            sheetState =
-                with(LocalDensity.current) {
-                    SheetState(
-                        initialValue = SheetValue.Expanded,
-                        skipPartiallyExpanded = true,
-                        velocityThreshold = { 56.dp.toPx() },
-                        positionalThreshold = { 125.dp.toPx() },
-                    )
-                },
-            onDismissRequest = {},
-            contentPadding = PaddingValues(),
-        ) {
-            ConfigurePage(
-                config =
-                    Config(
-                        downloadType = Audio,
-                        useFormatSelection = true,
-                        typeEntries = entries - Command,
-                    ),
-                preferences = PreferencesMock,
-                onConfigSave = {},
-                settingChips = {},
-            ) {}
-        }
-    }
-}
-
 @Composable
 private fun ConfigurePage(
     modifier: Modifier = Modifier,
@@ -658,8 +622,19 @@ private fun ConfigurePage(
         }
     }
 
-    Column {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
         Column(modifier = modifier.padding(horizontal = 20.dp)) {
+            // Drag Handle
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(vertical = 12.dp)
+                    .size(width = 32.dp, height = 4.dp)
+                    .alpha(0.4f)
+            ) {
+                Surface(modifier = Modifier.fillMaxSize(), shape = CircleShape, color = MaterialTheme.colorScheme.onSurfaceVariant) {}
+            }
+
             Header(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 title = "Configure before download",
@@ -674,7 +649,7 @@ private fun ConfigurePage(
                 textAlign = TextAlign.Center
             )
 
-            DrawerSheetSubtitle(text = stringResource(id = R.string.download_type))
+            DrawerSheetSubtitle(text = "Download type")
             DownloadTypeSelectionGroup(
                 typeEntries = config.typeEntries,
                 selectedType = selectedType,
@@ -683,7 +658,7 @@ private fun ConfigurePage(
             
             Column(modifier = Modifier.animateContentSize()) {
                 if (selectedType != Command) {
-                    DrawerSheetSubtitle(text = stringResource(id = R.string.format_selection))
+                    DrawerSheetSubtitle(text = "Format selection")
                     
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
                         SingleChoiceSegmentedButton(
@@ -736,7 +711,6 @@ private fun ConfigurePage(
                         }
                     }
                 } else {
-                    // Template selection for Command type
                     if (showTemplateSelectionDialog) {
                         TemplatePickerDialog { showTemplateSelectionDialog = false }
                     }
@@ -785,8 +759,8 @@ private fun ConfigurePage(
         
         Spacer(Modifier.height(16.dp))
         
-        var expanded by remember { mutableStateOf(false) }
-        ExpandableTitle(expanded = expanded, onClick = { expanded = true }) { settingChips() }
+        DrawerSheetSubtitle(text = "Additional settings", modifier = Modifier.padding(horizontal = 20.dp))
+        settingChips()
 
         ActionButtons(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -923,56 +897,61 @@ private fun AdditionalSettings(
     val accountsProfiles by DatabaseUtil.getAccountsFlow().collectAsStateWithLifecycle(emptyList())
     var showAccountsDialog by rememberSaveable { mutableStateOf(false) }
 
-    with(preference) {
-        Row(modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-            if (accountsProfiles.isNotEmpty()) {
-                VideoFilterChip(
-                    selected = preference.accounts,
-                    onClick = {
-                        if (isQuickDownload) {
-                            ACCOUNTS.updateBoolean(!accounts)
-                            onPreferenceUpdate()
-                        } else {
-                            showAccountsDialog = true
-                        }
-                    },
-                    label = stringResource(id = R.string.accounts),
+    Row(
+        modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OutlinedButton(
+            onClick = {
+                SUBTITLE.updateBoolean(!preference.downloadSubtitle)
+                onPreferenceUpdate()
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (preference.downloadSubtitle) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+            )
+        ) {
+            Text("Download subtitles", style = MaterialTheme.typography.labelMedium)
+        }
+
+        OutlinedButton(
+            onClick = {
+                THUMBNAIL.updateBoolean(!preference.createThumbnail)
+                onPreferenceUpdate()
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (preference.createThumbnail) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+            )
+        ) {
+            Text("Create thumbnail", style = MaterialTheme.typography.labelMedium)
+        }
+
+        if (accountsProfiles.isNotEmpty()) {
+            OutlinedButton(
+                onClick = { showAccountsDialog = true },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (preference.accounts) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
                 )
+            ) {
+                Text("Accounts", style = MaterialTheme.typography.labelMedium)
             }
-
-            VideoFilterChip(
-                selected = downloadSubtitle,
-                enabled = selectedType != Command,
-                onClick = {
-                    SUBTITLE.updateBoolean(!downloadSubtitle)
-                    onPreferenceUpdate()
-                },
-                label = stringResource(id = R.string.download_subtitles),
-            )
-            VideoFilterChip(
-                selected = createThumbnail,
-                enabled = selectedType != Command,
-                onClick = {
-                    THUMBNAIL.updateBoolean(!createThumbnail)
-                    onPreferenceUpdate()
-                },
-                label = stringResource(R.string.create_thumbnail),
-            )
         }
+    }
 
-        if (showAccountsDialog && accountsProfiles.isNotEmpty()) {
-            AccountsQuickSettingsDialog(
-                onDismissRequest = { showAccountsDialog = false },
-                onConfirm = {},
-                accountProfiles = accountsProfiles,
-                onAccountProfileClicked = { onNavigateToAccountGeneratorPage(it.url) },
-                isAccountsEnabled = accounts,
-                onAccountsToggled = {
-                    ACCOUNTS.updateBoolean(!accounts)
-                    onPreferenceUpdate()
-                },
-            )
-        }
+    if (showAccountsDialog && accountsProfiles.isNotEmpty()) {
+        AccountsQuickSettingsDialog(
+            onDismissRequest = { showAccountsDialog = false },
+            onConfirm = {},
+            accountProfiles = accountsProfiles,
+            onAccountProfileClicked = { onNavigateToAccountGeneratorPage(it.url) },
+            isAccountsEnabled = preference.accounts,
+            onAccountsToggled = {
+                ACCOUNTS.updateBoolean(!preference.accounts)
+                onPreferenceUpdate()
+            },
+        )
     }
 }
 
@@ -1239,7 +1218,7 @@ private fun ActionButton.Icon() {
         imageVector =
             when (this) {
                 FetchInfo -> Icons.AutoMirrored.Filled.ArrowForward
-                Download -> Icons.Outlined.FileDownload
+                Download -> Icons.Outlined.DoneAll
                 StartTask -> Icons.Filled.DownloadDone
             },
         contentDescription = null,
@@ -1250,13 +1229,11 @@ private fun ActionButton.Icon() {
 @Composable
 private fun ActionButton.Label() {
     Text(
-        stringResource(
-            when (this) {
-                FetchInfo -> R.string.proceed
-                Download -> R.string.download
-                StartTask -> R.string.start
-            }
-        ),
+        text = when (this) {
+            FetchInfo -> "Proceed"
+            Download -> "Download"
+            StartTask -> "Start"
+        },
         modifier = Modifier.padding(start = 8.dp),
     )
 }

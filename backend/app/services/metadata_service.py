@@ -44,35 +44,39 @@ class MetadataService:
         norm_url = normalize_instagram_url(url)
         logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
         
-        opts = cls.get_ydl_opts()
-        try:
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(norm_url, download=False)
-                if info:
-                    return ydl.sanitize_info(info)
-        except Exception as err:
-            err_str = str(err)
-            logger.warning(f"Primary yt-dlp metadata extraction failed: {err_str[:200]}. Retrying fallback...")
-            
-            # Fallback options without cookies file in case cookies expired/corrupted
-            fb_opts: Dict[str, Any] = {
-                "quiet": True,
-                "no_warnings": True,
-                "skip_download": True,
-                "cachedir": False,
-                "force_ipv4": True,
-                "http_headers": {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                }
-            }
+        # Step 1: Try with cookies if present
+        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            opts = cls.get_ydl_opts()
             try:
-                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
-                    info_fb = ydl_fb.extract_info(norm_url, download=False)
-                    if info_fb:
-                        return ydl_fb.sanitize_info(info_fb)
-            except Exception as fb_err:
-                logger.error(f"yt-dlp fallback metadata extraction failed: {fb_err}")
-                
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(norm_url, download=False)
+                    if info:
+                        return ydl.sanitize_info(info)
+            except Exception as err:
+                logger.warning(f"Metadata extraction with cookies failed ({err[:200] if isinstance(err, str) else str(err)[:200]}). Retrying in Anonymous Mode...")
+
+        # Step 2: Anonymous Mode (No cookies) fallback
+        fb_opts: Dict[str, Any] = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "cachedir": False,
+            "force_ipv4": True,
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                "Referer": "https://www.instagram.com/",
+                "X-IG-App-ID": "936619743392459",
+            }
+        }
+        try:
+            with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                info_fb = ydl_fb.extract_info(norm_url, download=False)
+                if info_fb:
+                    return ydl_fb.sanitize_info(info_fb)
+        except Exception as fb_err:
+            err_str = str(fb_err)
+            logger.error(f"yt-dlp anonymous metadata extraction failed: {err_str[:200]}")
+            
             if "Login required" in err_str or "No video formats" in err_str:
                 raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
             elif "Private account" in err_str or "private" in err_str.lower():
