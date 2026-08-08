@@ -108,6 +108,32 @@ class DownloadService:
         # Strategy 2: In-Memory Native yt-dlp Video / Audio Download
         out_tmpl = os.path.join(task_dir, "InstaFlow_%(title).100s.%(ext)s")
         
+        ffmpeg_bin = FFmpegService.get_ffmpeg_binary()
+        is_audio = audio_only or (requested_format and ("audio" in requested_format.lower() or "m4a" in requested_format.lower()))
+
+        fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"
+        if requested_format:
+            req_lower = requested_format.lower().strip()
+            if "2160" in req_lower or "4k" in req_lower:
+                fmt_str = "bestvideo[height<=3840][width<=2160]+bestaudio/bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif "1440" in req_lower or "2k" in req_lower:
+                fmt_str = "bestvideo[height<=2560][width<=1440]+bestaudio/bestvideo[height<=1440]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif "1080" in req_lower:
+                fmt_str = "bestvideo[height<=1920][width<=1080]+bestaudio/bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif "720" in req_lower:
+                fmt_str = "bestvideo[height<=1280][width<=720]+bestaudio/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif "480" in req_lower:
+                fmt_str = "bestvideo[height<=854][width<=480]+bestaudio/bestvideo[height<=480]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif "360" in req_lower:
+                fmt_str = "bestvideo[height<=640][width<=360]+bestaudio/bestvideo[height<=360]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
+            elif req_lower in ["lowest", "worst"]:
+                fmt_str = "worstvideo+worstaudio/worst"
+            elif req_lower in ["best", "optimal", "auto", "bestvideo+bestaudio/best"]:
+                fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo+bestaudio/b/best"
+            else:
+                fmt_str = f"b[ext=mp4]/best[ext=mp4]/{requested_format}/best"
+
+        # Step 1: Anonymous Mode FIRST (No cookies sent - prevents bot warnings & account flags)
         ydl_opts: Dict[str, Any] = {
             "outtmpl": out_tmpl,
             "quiet": True,
@@ -120,18 +146,11 @@ class DownloadService:
                 "X-IG-App-ID": "936619743392459",
             }
         }
-        
-        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
-            ydl_opts["cookiefile"] = settings.COOKIES_FILE
-            
-        ffmpeg_bin = FFmpegService.get_ffmpeg_binary()
         if ffmpeg_bin:
             ydl_opts["ffmpeg_location"] = ffmpeg_bin
 
-        is_audio = audio_only or (requested_format and ("audio" in requested_format.lower() or "m4a" in requested_format.lower()))
-
         if is_audio:
-            logger.info("Executing Audio-Only Extraction via native yt-dlp")
+            logger.info("Executing Audio-Only Extraction via native yt-dlp (Anonymous Mode)")
             ydl_opts.update({
                 "format": "bestaudio/best",
                 "postprocessors": [{
@@ -141,29 +160,7 @@ class DownloadService:
                 }]
             })
         else:
-            logger.info("Executing Full Video Download via native yt-dlp")
-            fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"
-            if requested_format:
-                req_lower = requested_format.lower().strip()
-                if "2160" in req_lower or "4k" in req_lower:
-                    fmt_str = "bestvideo[height<=3840][width<=2160]+bestaudio/bestvideo[height<=2160]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif "1440" in req_lower or "2k" in req_lower:
-                    fmt_str = "bestvideo[height<=2560][width<=1440]+bestaudio/bestvideo[height<=1440]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif "1080" in req_lower:
-                    fmt_str = "bestvideo[height<=1920][width<=1080]+bestaudio/bestvideo[height<=1080]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif "720" in req_lower:
-                    fmt_str = "bestvideo[height<=1280][width<=720]+bestaudio/bestvideo[height<=720]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif "480" in req_lower:
-                    fmt_str = "bestvideo[height<=854][width<=480]+bestaudio/bestvideo[height<=480]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif "360" in req_lower:
-                    fmt_str = "bestvideo[height<=640][width<=360]+bestaudio/bestvideo[height<=360]+bestaudio/bestvideo+bestaudio/b[ext=mp4]/b/best"
-                elif req_lower in ["lowest", "worst"]:
-                    fmt_str = "worstvideo+worstaudio/worst"
-                elif req_lower in ["best", "optimal", "auto", "bestvideo+bestaudio/best"]:
-                    fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo+bestaudio/b/best"
-                else:
-                    fmt_str = f"b[ext=mp4]/best[ext=mp4]/{requested_format}/best"
-
+            logger.info(f"Executing Full Video Download via native yt-dlp (Anonymous Mode, format: {fmt_str})")
             ydl_opts.update({
                 "format": fmt_str,
                 "merge_output_format": "mp4"
@@ -179,44 +176,18 @@ class DownloadService:
                 ydl.download([norm_url])
         except Exception as err:
             err_str = str(err)
-            logger.warning(f"Primary yt-dlp in-memory download failed: {err_str[:200]}. Retrying fallback...")
-            fb_opts: Dict[str, Any] = {
-                "outtmpl": out_tmpl,
-                "quiet": True,
-                "no_warnings": True,
-                "cachedir": False,
-                "force_ipv4": True,
-                "http_headers": {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                }
-            }
-            if ffmpeg_bin:
-                fb_opts["ffmpeg_location"] = ffmpeg_bin
-            if item_index and item_index > 0:
-                fb_opts["playlist_items"] = str(item_index)
-            else:
-                fb_opts["noplaylist"] = True
+            logger.warning(f"Primary anonymous yt-dlp download failed: {err_str[:200]}. Trying Cookie Mode fallback...")
             
-            if is_audio:
-                fb_opts.update({
-                    "format": "bestaudio/best",
-                    "postprocessors": [{
-                        "key": "FFmpegExtractAudio",
-                        "preferredcodec": "m4a",
-                        "preferredquality": "192",
-                    }]
-                })
+            if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+                fb_opts = dict(ydl_opts)
+                fb_opts["cookiefile"] = settings.COOKIES_FILE
+                try:
+                    with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
+                        ydl_fb.download([norm_url])
+                except Exception as fb_err:
+                    logger.error(f"yt-dlp cookie fallback download failed: {fb_err}")
+                    raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
             else:
-                fb_opts.update({
-                    "format": fmt_str,
-                    "merge_output_format": "mp4"
-                })
-                
-            try:
-                with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
-                    ydl_fb.download([norm_url])
-            except Exception as fb_err:
-                logger.error(f"yt-dlp fallback download failed: {fb_err}")
                 raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
 
         # Scan task_dir for valid completed output files

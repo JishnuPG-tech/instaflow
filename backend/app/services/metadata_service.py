@@ -45,23 +45,11 @@ class MetadataService:
         norm_url = normalize_instagram_url(url)
         logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
         
-        # Step 1: Try with cookies if present
-        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
-            opts = cls.get_ydl_opts()
-            try:
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    info = ydl.extract_info(norm_url, download=False)
-                    if info:
-                        return ydl.sanitize_info(info)
-            except Exception as err:
-                logger.warning(f"Metadata extraction with cookies failed ({err[:200] if isinstance(err, str) else str(err)[:200]}). Retrying in Anonymous Mode...")
-
-        # Step 2: Anonymous Mode (No cookies) fallback
-        fb_opts: Dict[str, Any] = {
+        # Step 1: Anonymous Mode FIRST (No cookies - prevents bot warnings & account flags)
+        anon_opts: Dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
-            "allow_unplayable_formats": False,
             "cachedir": False,
             "force_ipv4": True,
             "http_headers": {
@@ -70,24 +58,37 @@ class MetadataService:
                 "X-IG-App-ID": "936619743392459",
             }
         }
+        
         try:
-            with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
-                info_fb = ydl_fb.extract_info(norm_url, download=False)
-                if info_fb:
-                    return ydl_fb.sanitize_info(info_fb)
-        except Exception as fb_err:
-            err_str = str(fb_err)
-            logger.error(f"yt-dlp anonymous metadata extraction failed: {err_str[:200]}")
-            
-            if "Login required" in err_str:
-                raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
-            elif "Private account" in err_str or "private" in err_str.lower():
-                raise ValueError(ErrorCode.PRIVATE_POST.value)
-            elif "429" in err_str or "Too Many Requests" in err_str:
-                raise ValueError(ErrorCode.RATE_LIMITED.value)
-            elif "404" in err_str or "Not Found" in err_str:
-                raise ValueError(ErrorCode.NOT_FOUND.value)
-            else:
-                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
-                
-        raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: Failed to extract media metadata")
+            with yt_dlp.YoutubeDL(anon_opts) as ydl_anon:
+                info_anon = ydl_anon.extract_info(norm_url, download=False)
+                if info_anon:
+                    logger.info("Anonymous Mode metadata extraction succeeded!")
+                    return ydl_anon.sanitize_info(info_anon)
+        except Exception as anon_err:
+            logger.warning(f"Anonymous Mode metadata extraction failed: {str(anon_err)[:150]}. Checking Cookie Mode fallback...")
+
+        # Step 2: Cookie Mode fallback (Only if anonymous mode failed and cookies file exists)
+        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            cookie_opts = cls.get_ydl_opts()
+            try:
+                with yt_dlp.YoutubeDL(cookie_opts) as ydl_cookie:
+                    info_cookie = ydl_cookie.extract_info(norm_url, download=False)
+                    if info_cookie:
+                        logger.info("Cookie Mode metadata extraction succeeded!")
+                        return ydl_cookie.sanitize_info(info_cookie)
+            except Exception as cookie_err:
+                logger.error(f"Cookie Mode metadata extraction failed: {str(cookie_err)[:150]}")
+
+        # Fallback error categorization
+        err_str = str(anon_err) if 'anon_err' in locals() else "Metadata extraction failed"
+        if "Login required" in err_str:
+            raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
+        elif "Private account" in err_str or "private" in err_str.lower():
+            raise ValueError(ErrorCode.PRIVATE_POST.value)
+        elif "429" in err_str or "Too Many Requests" in err_str:
+            raise ValueError(ErrorCode.RATE_LIMITED.value)
+        elif "404" in err_str or "Not Found" in err_str:
+            raise ValueError(ErrorCode.NOT_FOUND.value)
+        else:
+            raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
