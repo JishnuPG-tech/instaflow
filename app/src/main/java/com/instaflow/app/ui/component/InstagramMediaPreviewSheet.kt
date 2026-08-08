@@ -213,14 +213,18 @@ fun InstagramMediaPreviewSheet(
                                 items.indices.forEach { selectedIndices.add(it) }
                             },
                             modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
+                            Icon(Icons.Default.PhotoLibrary, null, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
                             Text("Select All", fontSize = 11.sp)
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         OutlinedButton(
                             onClick = { selectedIndices.clear() },
                             modifier = Modifier.height(32.dp),
+                            shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
                             Text("Clear", fontSize = 11.sp)

@@ -6,11 +6,11 @@ androidxCore = "1.15.0"
 androidMaterial = "1.12.0"
 androidxAppCompat = "1.7.0"
 androidxActivity = "1.10.1"
+androidxWork = "2.10.0"
+androidxLifecycle = "2.8.7"
 palette = "1.0.0"
 graphics = "1.0.1"
 constraintLayout = "1.1.0"
-
-androidxLifecycle = "2.8.7"
 androidxNavigation = "2.8.9"
 
 androidxEspresso = "3.5.0"
@@ -50,6 +50,7 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 
 androidx-lifecycle-runtimeCompose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
+androidx-lifecycle-livedata-ktx = { group = "androidx.lifecycle", name = "lifecycle-livedata-ktx", version.ref = "androidxLifecycle" }
 
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 accompanist-webview = { group = "com.google.accompanist", name = "accompanist-webview", version.ref = "accompanist" }
@@ -70,6 +71,7 @@ androidx-compose-material3-windowSizeClass = { group = "androidx.compose.materia
 
 androidx-graphics-shapes = { group = "androidx.graphics", name = "graphics-shapes", version.ref = "graphics" }
 androidx-palette-ktx = { group = "androidx.palette", name = "palette-ktx", version.ref = "palette" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "androidxWork" }
 
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 

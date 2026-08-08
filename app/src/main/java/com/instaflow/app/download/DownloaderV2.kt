@@ -3,9 +3,15 @@ package com.instaflow.app.download
 import android.app.PendingIntent
 import android.content.Context
 import android.util.Log
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.lifecycle.asFlow
 import com.instaflow.app.App
 import com.instaflow.app.R
 import com.instaflow.app.download.Task.DownloadState
@@ -31,6 +37,7 @@ import kotlin.collections.set
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -97,6 +104,8 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val taskStateMap = mutableStateMapOf<Task, Task.State>()
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
+    private val workManager = WorkManager.getInstance(appContext)
+    private val json = Json { ignoreUnknownKeys = true }
 
     init {
         scope.launch(Dispatchers.Default) {
@@ -105,6 +114,35 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 .map { it.countRunning() }
                 .distinctUntilChanged()
                 .collect { if (it > 0) App.startService() else App.stopService() }
+        }
+
+        // Observe WorkManager for carousel items
+        scope.launch(Dispatchers.Main) {
+            workManager.getWorkInfosByTagLiveData("download_task").asFlow().collect { workInfos ->
+                workInfos.forEach { info ->
+                    val taskId = info.tags.find { it != "download_task" && it != "com.instaflow.app.download.DownloadWorker" }
+                    if (taskId != null) {
+                        val task = taskStateMap.keys.find { it.id == taskId }
+                        if (task != null) {
+                            when (info.state) {
+                                androidx.work.WorkInfo.State.SUCCEEDED -> {
+                                    val path = info.outputData.getString(DownloadWorker.OUTPUT_PATH)
+                                    task.downloadState = Completed(path)
+                                }
+                                androidx.work.WorkInfo.State.FAILED -> {
+                                    task.downloadState = Error(action = Download)
+                                }
+                                androidx.work.WorkInfo.State.RUNNING -> {
+                                    val progress = info.progress.getFloat(DownloadWorker.PROGRESS, 0f)
+                                    val text = info.progress.getString(DownloadWorker.TEXT) ?: ""
+                                    task.downloadState = Running(taskId = taskId, progress = progress / 100f, progressText = text)
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         scope.launch(Dispatchers.IO) {
@@ -296,6 +334,24 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
 
     private fun Task.download() {
         check(downloadState == ReadyWithInfo && info != null)
+        
+        // If it's a carousel item or we want extra reliability, use WorkManager
+        if (type is TypeInfo.Playlist) {
+            Log.i(TAG, "[Pipeline] Enqueuing carousel item to WorkManager: $id")
+            val taskJson = json.encodeToString(this)
+            val workRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+                .setInputData(workDataOf(DownloadWorker.KEY_TASK to taskJson))
+                .addTag("download_task")
+                .addTag(id)
+                .build()
+            
+            workManager.enqueue(workRequest)
+            
+            // Still track it in memory for UI, but mark as running
+            downloadState = Running(job = Job(), taskId = id) // Placeholder job
+            return
+        }
+
         if (type is TypeInfo.CustomCommand) {
             execute()
             return

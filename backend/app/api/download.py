@@ -18,7 +18,8 @@ def download_get(
     item: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
     audio_only: Optional[bool] = Query(False),
-    mux_audio: Optional[bool] = Query(False)
+    mux_audio: Optional[bool] = Query(False),
+    merge_photo_audio: Optional[bool] = Query(False)
 ):
     if not is_valid_instagram_url(url):
         raise HTTPException(
@@ -28,6 +29,8 @@ def download_get(
 
     task_dir = create_task_temp_dir()
     background_tasks.add_task(CleanupService.cleanup_task, task_dir)
+
+    is_mux = bool(mux_audio or merge_photo_audio)
 
     item_entry = None
     try:
@@ -50,7 +53,7 @@ def download_get(
             item_entry=item_entry,
             requested_format=format,
             audio_only=audio_only,
-            mux_audio=mux_audio
+            mux_audio=is_mux
         )
         
         return StreamService.create_streaming_response(filepath)

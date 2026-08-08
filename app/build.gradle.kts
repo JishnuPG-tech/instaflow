@@ -173,10 +173,12 @@ dependencies {
     implementation(libs.bundles.core)
 
     implementation(libs.androidx.lifecycle.runtimeCompose)
+    implementation(libs.androidx.lifecycle.livedata.ktx)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.androidxCompose)
     implementation(libs.androidx.palette.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.bundles.accompanist)
 
     implementation(libs.coil.kt.compose)
