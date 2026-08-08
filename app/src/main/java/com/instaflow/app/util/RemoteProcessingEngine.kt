@@ -24,19 +24,28 @@ object RemoteProcessingEngine {
     private val json = Json { ignoreUnknownKeys = true }
 
     fun isServerAvailable(): Boolean {
-        return try {
-            val url = URL("$serverBaseUrl/health")
-            val conn = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 8000
-                readTimeout = 8000
-                requestMethod = "GET"
+        for (attempt in 1..3) {
+            try {
+                val url = URL("$serverBaseUrl/health")
+                val conn = (url.openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 10000
+                    readTimeout = 10000
+                    requestMethod = "GET"
+                }
+                val code = conn.responseCode
+                conn.disconnect()
+                if (code == 200) {
+                    Log.i(TAG, "[RemoteEngine] Health check passed on attempt $attempt")
+                    return true
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "[RemoteEngine] Health check attempt $attempt failed: ${e.message}")
             }
-            val code = conn.responseCode
-            conn.disconnect()
-            code == 200
-        } catch (e: Exception) {
-            false
+            if (attempt < 3) {
+                try { Thread.sleep(1500) } catch (_: Exception) {}
+            }
         }
+        return false
     }
 
     fun analyzeUrl(urlStr: String): Result<YoutubeDLInfo> {
@@ -47,8 +56,8 @@ object RemoteProcessingEngine {
             
             val url = URL(endpoint)
             connection = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 10000
-                readTimeout = 30000
+                connectTimeout = 15000
+                readTimeout = 45000
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
                 setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.0.0")
@@ -108,7 +117,7 @@ object RemoteProcessingEngine {
             if (itemIndex > 0) {
                 queryBuilder.append("&item=$itemIndex")
             }
-            if (quality != null) {
+            if (quality != null && quality > 0) {
                 queryBuilder.append("&quality=$quality")
             }
             if (!formatId.isNullOrEmpty()) {
