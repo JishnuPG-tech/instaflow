@@ -153,7 +153,10 @@ android {
 
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
-        jniLibs.useLegacyPackaging = true
+        jniLibs {
+            useLegacyPackaging = true
+            pickFirsts += setOf("**/libpython*.so", "**/libffmpeg*.so", "**/lib*.so")
+        }
     }
     androidResources { generateLocaleConfig = true }
 

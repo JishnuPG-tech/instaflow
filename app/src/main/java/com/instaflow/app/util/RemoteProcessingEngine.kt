@@ -14,8 +14,8 @@ import java.net.URLEncoder
 object RemoteProcessingEngine {
     private const val TAG = "RemoteEngine"
     
-    // Default server address: 10.0.2.2 for Android Emulator, or localhost / custom server IP
-    var serverBaseUrl: String = "http://10.0.2.2:8000"
+    // Live Hugging Face Space Base URL with fallback to local emulator/server
+    var serverBaseUrl: String = "https://jishnupg-opencode-cli.hf.space/instaflow"
 
     fun isServerAvailable(): Boolean {
         return try {
