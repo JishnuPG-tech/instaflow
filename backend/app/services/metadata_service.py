@@ -77,7 +77,7 @@ class MetadataService:
             err_str = str(fb_err)
             logger.error(f"yt-dlp anonymous metadata extraction failed: {err_str[:200]}")
             
-            if "Login required" in err_str or "No video formats" in err_str:
+            if "Login required" in err_str:
                 raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
             elif "Private account" in err_str or "private" in err_str.lower():
                 raise ValueError(ErrorCode.PRIVATE_POST.value)
