@@ -31,9 +31,10 @@ def download_get(
         entries = raw_meta.get("entries") or []
         item_entry = None
         
-        if entries and item and 0 < item <= len(entries):
-            item_entry = entries[item - 1]
-        elif not entries:
+        if entries:
+            idx = (item - 1) if (item and 0 < item <= len(entries)) else 0
+            item_entry = entries[idx]
+        else:
             item_entry = raw_meta
 
         filepath = DownloadService.download_item(
@@ -46,11 +47,13 @@ def download_get(
         return StreamService.create_streaming_response(filepath)
 
     except ValueError as ve:
+        CleanupService.cleanup_task(task_dir)
         raise HTTPException(
             status_code=422,
             detail={"success": False, "error_code": ErrorCode.VALIDATION_FAILED.value, "message": str(ve)}
         )
     except Exception as e:
+        CleanupService.cleanup_task(task_dir)
         raise HTTPException(
             status_code=500,
             detail={"success": False, "error_code": ErrorCode.DOWNLOAD_FAILED.value, "message": str(e)}
