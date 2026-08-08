@@ -40,24 +40,30 @@ object FileUtil {
             .onFailure { onFailureCallback(it) }
 
     private fun createIntentForFile(path: String?): Intent? {
-        if (path == null) return null
+        if (path.isNullOrBlank()) return null
         Log.d(TAG, "Creating intent for file: $path")
 
         val file = File(path)
         val uri = if (file.exists()) {
-            FileProvider.getUriForFile(
-                context,
-                context.getFileProvider(),
-                file,
-            )
+            try {
+                FileProvider.getUriForFile(
+                    context,
+                    context.getFileProvider(),
+                    file,
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "FileProvider failed for path: $path", e)
+                Uri.fromFile(file)
+            }
         } else {
             path.runCatching {
-                DocumentFile.fromSingleUri(context, Uri.parse(path))?.uri
+                if (startsWith("content://") || startsWith("file://")) Uri.parse(this)
+                else DocumentFile.fromSingleUri(context, Uri.parse(path))?.uri
             }.getOrNull()
         } ?: return null
 
         return Intent().apply {
-            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
             data = uri
         }
     }
