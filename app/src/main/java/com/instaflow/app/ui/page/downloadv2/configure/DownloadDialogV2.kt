@@ -40,6 +40,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material.icons.filled.VideoFile
+import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DoneAll
@@ -47,9 +48,11 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.HighQuality
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.NewLabel
 import androidx.compose.material.icons.outlined.SettingsSuggest
+import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -658,33 +661,78 @@ private fun ConfigurePage(
                 title = stringResource(R.string.settings_before_download),
                 icon = Icons.Outlined.DoneAll,
             )
+            
+            Text(
+                text = "Adjust this download",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                textAlign = TextAlign.Center
+            )
+
             DrawerSheetSubtitle(text = stringResource(id = R.string.download_type))
             DownloadTypeSelectionGroup(
                 typeEntries = config.typeEntries,
                 selectedType = selectedType,
                 onSelect = { selectedType = it },
             )
+            
             Column(modifier = Modifier.animateContentSize()) {
                 if (selectedType != Command) {
-                    DrawerSheetSubtitle(
-                        text = stringResource(id = R.string.format_selection),
-                        modifier = Modifier,
-                    )
-                    Preset(
-                        modifier = Modifier,
-                        preference = preferences,
-                        selected = !useFormatSelection,
-                        downloadType = selectedType,
-                        onClick = { useFormatSelection = false },
-                        showEditIcon = !useFormatSelection && selectedType != Playlist,
-                        onEdit = { onPresetEdit(selectedType) },
-                    )
-                    Custom(
-                        selected = useFormatSelection,
-                        enabled = selectedType != Playlist,
-                        onClick = { useFormatSelection = true },
-                    )
+                    DrawerSheetSubtitle(text = stringResource(id = R.string.format_selection))
+                    
+                    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                        SingleChoiceSegmentedButton(
+                            selected = !useFormatSelection,
+                            onClick = { useFormatSelection = false },
+                            shape = SegmentedButtonDefaults.itemShape(0, 2),
+                        ) {
+                            Text(text = "Auto")
+                        }
+                        SingleChoiceSegmentedButton(
+                            selected = useFormatSelection,
+                            onClick = { useFormatSelection = true },
+                            shape = SegmentedButtonDefaults.itemShape(1, 2),
+                            enabled = selectedType != Playlist,
+                        ) {
+                            Text(text = "Custom")
+                        }
+                    }
+
+                    if (!useFormatSelection) {
+                        DrawerSheetSubtitle(text = "Format preference")
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (selectedType == Audio) {
+                                ButtonChip(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Outlined.AudioFile,
+                                    label = PreferenceStrings.getAudioFormatDesc(preferences.audioFormat),
+                                    onClick = { onPresetEdit(Audio) }
+                                )
+                                ButtonChip(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Outlined.Sync,
+                                    label = if (preferences.convertAudio) "Converted" else "Unconverted",
+                                    onClick = { onPresetEdit(Audio) }
+                                )
+                            } else if (selectedType == Video) {
+                                ButtonChip(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Outlined.VideoFile,
+                                    label = PreferenceStrings.getVideoFormatLabel(preferences.videoFormat),
+                                    onClick = { onPresetEdit(Video) }
+                                )
+                                ButtonChip(
+                                    modifier = Modifier.weight(1f),
+                                    icon = Icons.Outlined.HighQuality,
+                                    label = PreferenceStrings.getVideoResolutionDesc(preferences.videoResolution),
+                                    onClick = { onPresetEdit(Video) }
+                                )
+                            }
+                        }
+                    }
                 } else {
+                    // Template selection for Command type
                     if (showTemplateSelectionDialog) {
                         TemplatePickerDialog { showTemplateSelectionDialog = false }
                     }
@@ -730,11 +778,14 @@ private fun ConfigurePage(
                 }
             }
         }
+        
+        Spacer(Modifier.height(16.dp))
+        
         var expanded by remember { mutableStateOf(false) }
         ExpandableTitle(expanded = expanded, onClick = { expanded = true }) { settingChips() }
 
         ActionButtons(
-            modifier = Modifier.padding(horizontal = 20.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             canProceed = canProceed,
             selectedType = selectedType,
             useFormatSelection = useFormatSelection,

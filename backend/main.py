@@ -42,6 +42,8 @@ class CookieInjectRequest(BaseModel):
 class DownloadRequest(BaseModel):
     url: str
     playlist_index: Optional[int] = None
+    quality: Optional[int] = None
+    audio_only: bool = False
 
 @app.get("/")
 def read_root():
@@ -136,7 +138,12 @@ def analyze_url(req: AnalyzeRequest):
         raise HTTPException(status_code=500, detail=detail)
 
 @app.get("/api/v1/download")
-def download_get(url: str = Query(...), index: Optional[int] = Query(None)):
+def download_get(
+    url: str = Query(...),
+    index: Optional[int] = Query(None),
+    quality: Optional[int] = Query(None),
+    audio_only: bool = Query(False)
+):
     try:
         meta = fetch_metadata(url)
         item_entry = None
@@ -147,7 +154,7 @@ def download_get(url: str = Query(...), index: Optional[int] = Query(None)):
         elif not entries:
             item_entry = meta
 
-        filepath = download_media_item(url, playlist_index=index, item_entry=item_entry)
+        filepath = download_media_item(url, playlist_index=index, item_entry=item_entry, quality=quality, audio_only=audio_only)
         if not filepath or not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File download failed or file not found")
         
@@ -164,7 +171,7 @@ def download_get(url: str = Query(...), index: Optional[int] = Query(None)):
 
 @app.post("/api/v1/download")
 def download_post(req: DownloadRequest):
-    return download_get(url=req.url, index=req.playlist_index)
+    return download_get(url=req.url, index=req.playlist_index, quality=req.quality, audio_only=req.audio_only)
 
 if __name__ == "__main__":
     import uvicorn

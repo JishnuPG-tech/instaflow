@@ -774,7 +774,7 @@ fun VideoQualityDialog(
     InstaFlowDialog(
         onDismissRequest = onDismissRequest,
         dismissButton = {
-            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.dismiss)) }
+            TextButton(onClick = onDismissRequest) { Text(stringResource(R.string.cancel)) }
         },
         icon = { Icon(Icons.Outlined.HighQuality, null) },
         title = { Text(stringResource(R.string.video_quality)) },
@@ -789,15 +789,14 @@ fun VideoQualityDialog(
             }
         },
         text = {
-            Column() {
+            Column {
                 Text(
                     modifier =
                         Modifier.fillMaxWidth().padding(bottom = 12.dp).padding(horizontal = 24.dp),
-                    text = stringResource(R.string.video_quality_desc),
+                    text = "Limit the video quality when multiple are present",
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                LazyColumn() {
-                    //                    item { videoResolutionSelectField() }
+                LazyColumn {
                     for (i in 0..7) {
                         item {
                             DialogSingleChoiceItem(

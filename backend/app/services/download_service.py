@@ -95,7 +95,11 @@ class DownloadService:
             fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"
             if requested_format:
                 req_lower = requested_format.lower().strip()
-                if "1080" in req_lower:
+                if "2160" in req_lower or "4k" in req_lower:
+                    fmt_str = "bestvideo[height<=2160]+bestaudio/best[height<=2160]/b[ext=mp4]/best"
+                elif "1440" in req_lower or "2k" in req_lower:
+                    fmt_str = "bestvideo[height<=1440]+bestaudio/best[height<=1440]/b[ext=mp4]/best"
+                elif "1080" in req_lower:
                     fmt_str = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/b[ext=mp4]/best"
                 elif "720" in req_lower:
                     fmt_str = "bestvideo[height<=720]+bestaudio/best[height<=720]/b[ext=mp4]/best"
@@ -103,6 +107,8 @@ class DownloadService:
                     fmt_str = "bestvideo[height<=480]+bestaudio/best[height<=480]/b[ext=mp4]/best"
                 elif "360" in req_lower:
                     fmt_str = "bestvideo[height<=360]+bestaudio/best[height<=360]/b[ext=mp4]/best"
+                elif req_lower in ["lowest", "worst"]:
+                    fmt_str = "worstvideo+worstaudio/worst"
                 elif req_lower in ["best", "optimal", "auto", "bestvideo+bestaudio/best"]:
                     fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo+bestaudio/b/best"
                 else:

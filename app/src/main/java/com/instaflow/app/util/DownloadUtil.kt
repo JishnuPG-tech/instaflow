@@ -914,13 +914,14 @@ object DownloadUtil {
 
             // Check if InstaFlow v2 Remote Processing Engine server is active
             if (RemoteProcessingEngine.isServerAvailable()) {
-                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (format: '$formatIdString', audioOnly: $extractAudio)")
+                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio)")
                 val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
                 val remoteResult = RemoteProcessingEngine.downloadMedia(
                     context = context,
                     urlStr = url,
                     downloadDir = downloadDir,
                     itemIndex = playlistItem,
+                    quality = videoResolution,
                     formatId = formatIdString,
                     audioOnly = extractAudio,
                     videoInfo = videoInfo,

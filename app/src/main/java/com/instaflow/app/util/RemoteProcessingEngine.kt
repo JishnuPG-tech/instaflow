@@ -91,6 +91,7 @@ object RemoteProcessingEngine {
         urlStr: String,
         downloadDir: File,
         itemIndex: Int = 0,
+        quality: Int? = null,
         formatId: String? = null,
         audioOnly: Boolean = false,
         videoInfo: Any? = null,
@@ -105,6 +106,9 @@ object RemoteProcessingEngine {
             val queryBuilder = StringBuilder("$serverBaseUrl/api/v1/download?url=$encodedUrl")
             if (itemIndex > 0) {
                 queryBuilder.append("&item=$itemIndex")
+            }
+            if (quality != null) {
+                queryBuilder.append("&quality=$quality")
             }
             if (!formatId.isNullOrEmpty()) {
                 queryBuilder.append("&format=${URLEncoder.encode(formatId, "UTF-8")}")

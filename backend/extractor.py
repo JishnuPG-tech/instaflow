@@ -148,12 +148,14 @@ def fetch_metadata(url: str) -> Dict[str, Any]:
 def download_media_item(
     url: str,
     playlist_index: Optional[int] = None,
-    item_entry: Optional[Dict[str, Any]] = None
+    item_entry: Optional[Dict[str, Any]] = None,
+    quality: Optional[int] = None,
+    audio_only: bool = False
 ) -> str:
     norm_url = InstagramUrlNormalizer.normalize(url)
     
     # Strategy 1: Photo / Direct CDN Image Download
-    if item_entry:
+    if item_entry and not audio_only:
         img_url = item_entry.get("thumbnail") or item_entry.get("url")
         if not img_url and item_entry.get("thumbnails"):
             img_url = item_entry["thumbnails"][-1].get("url")
@@ -191,7 +193,23 @@ def download_media_item(
         cmd.extend(["--ffmpeg-location", os.path.dirname(ffmpeg_path)])
     
     cmd.extend(["--merge-output-format", "mp4"])
-    cmd.extend(["-f", "bestvideo+bestaudio/best"])
+
+    if audio_only:
+        cmd.extend(["-f", "bestaudio/best"])
+        cmd.append("-x")
+    else:
+        # Quality mapping
+        res_map = {1: 2160, 2: 1440, 3: 1080, 4: 720, 5: 480, 6: 360}
+        limit = res_map.get(quality)
+
+        if limit:
+            # Try to get best video up to the limit, then merge with best audio
+            fmt_str = f"bestvideo[height<={limit}]+bestaudio/best[height<={limit}]/best"
+            cmd.extend(["-f", fmt_str])
+        elif quality == 7: # Lowest
+            cmd.extend(["-f", "worstvideo+worstaudio/worst"])
+        else: # Best (0) or None
+            cmd.extend(["-f", "bestvideo+bestaudio/best"])
     
     if playlist_index and playlist_index > 0:
         cmd.extend(["--playlist-items", str(playlist_index)])
@@ -204,12 +222,14 @@ def download_media_item(
     logger.info(f"[Extractor] Executing yt-dlp Video Download: {' '.join(cmd)}")
     res = subprocess.run(cmd, capture_output=True, text=True)
     
-    # Fallback to auto format if explicit -f bestvideo+bestaudio/best failed
+    # Fallback to auto format if explicit quality selector failed
     if res.returncode != 0:
-        logger.warning(f"[Extractor] Explicit video selector failed. Retrying without -f selector.")
+        logger.warning(f"[Extractor] Explicit quality selector failed. Retrying with default selector.")
         cmd_fallback = [sys.executable, "-m", "yt_dlp", "-4", "-o", out_tmpl]
         if ffmpeg_path:
             cmd_fallback.extend(["--ffmpeg-location", os.path.dirname(ffmpeg_path)])
+        if audio_only:
+            cmd_fallback.extend(["-f", "bestaudio/best", "-x"])
         if playlist_index and playlist_index > 0:
             cmd_fallback.extend(["--playlist-items", str(playlist_index)])
         else:
