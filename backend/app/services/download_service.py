@@ -20,12 +20,14 @@ class DownloadService:
         url: str,
         task_dir: str,
         item_index: Optional[int] = None,
-        item_entry: Optional[Dict[str, Any]] = None
+        item_entry: Optional[Dict[str, Any]] = None,
+        requested_format: Optional[str] = None,
+        audio_only: bool = False
     ) -> str:
         norm_url = normalize_instagram_url(url)
         
         # Check Strategy 1: Direct Photo CDN Download
-        if item_entry:
+        if item_entry and not audio_only:
             img_url = item_entry.get("thumbnail") or item_entry.get("url")
             if not img_url and item_entry.get("thumbnails"):
                 img_url = item_entry["thumbnails"][-1].get("url")
@@ -53,17 +55,27 @@ class DownloadService:
                 ValidationService.validate_file(target_path, is_video=False)
                 return target_path
 
-        # Strategy 2: Video Download via yt-dlp + FFmpeg Muxing
+        # Strategy 2: Audio Only vs Full Video Download
         out_tmpl = os.path.join(task_dir, "InstaFlow_%(title).100s.%(ext)s")
         cmd = [sys.executable, "-m", "yt_dlp", "-4", "-o", out_tmpl]
         
         ffmpeg_bin = FFmpegService.get_ffmpeg_binary()
         if ffmpeg_bin:
             cmd.extend(["--ffmpeg-location", ffmpeg_bin])
-            
-        cmd.extend(["--merge-output-format", "mp4"])
-        # Format selector: Prioritize progressive mp4 video stream with audio (b/best), then merged H.264 video
-        cmd.extend(["-f", "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"])
+
+        is_audio = audio_only or (requested_format and ("audio" in requested_format.lower() or "m4a" in requested_format.lower()))
+        
+        if is_audio:
+            logger.info("Executing Audio-Only Extraction")
+            cmd.extend(["-x", "--audio-format", "m4a", "-f", "bestaudio/best"])
+        else:
+            logger.info("Executing Full Video Download with Audio Muxing")
+            cmd.extend(["--merge-output-format", "mp4"])
+            if requested_format and requested_format not in ["best", "bestvideo+bestaudio/best", ""]:
+                # Custom requested resolution (e.g. 1080p, 720p)
+                cmd.extend(["-f", f"{requested_format}+bestaudio/b[ext=mp4]/best[ext=mp4]/best"])
+            else:
+                cmd.extend(["-f", "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"])
         
         if item_index and item_index > 0:
             cmd.extend(["--playlist-items", str(item_index)])
@@ -85,7 +97,12 @@ class DownloadService:
                 cmd_fallback.extend(["--playlist-items", str(item_index)])
             else:
                 cmd_fallback.append("--no-playlist")
-            cmd_fallback.extend(["-f", "b/best"])
+            
+            if is_audio:
+                cmd_fallback.extend(["-x", "--audio-format", "m4a", "-f", "bestaudio/best"])
+            else:
+                cmd_fallback.extend(["-f", "b/best"])
+                
             cmd_fallback.extend(MetadataService.get_ig_headers())
             cmd_fallback.append(norm_url)
             res = subprocess.run(cmd_fallback, capture_output=True, text=True)
@@ -96,7 +113,6 @@ class DownloadService:
         import re
         all_entries = [f for f in os.listdir(task_dir) if not f.startswith(".")]
         
-        # 1. Filter out temporary files and unmerged DASH fragments (.fdash, .f140.m4a, etc.)
         clean_files = []
         for f in all_entries:
             lname = f.lower()
@@ -106,28 +122,38 @@ class DownloadService:
                 continue
             clean_files.append(os.path.join(task_dir, f))
 
-        # 2. Prioritize MP4 video files over audio-only files
-        video_files = [f for f in clean_files if f.lower().endswith((".mp4", ".mkv", ".webm"))]
-        
-        if video_files:
-            video_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-            target_file = video_files[0]
-        elif clean_files:
-            clean_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-            target_file = clean_files[0]
-        else:
-            # Absolute fallback: if only fdash fragments exist, pick the .mp4 video fragment over .m4a audio
-            raw_files = [os.path.join(task_dir, f) for f in all_entries if not f.endswith((".part", ".ytdl", ".tmp"))]
-            raw_mp4s = [f for f in raw_files if f.lower().endswith((".mp4", ".mkv", ".webm"))]
-            if raw_mp4s:
-                raw_mp4s.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-                target_file = raw_mp4s[0]
-            elif raw_files:
-                raw_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
-                target_file = raw_files[0]
+        if is_audio:
+            # For audio requests, select .m4a / .mp3 / .aac audio file
+            audio_files = [f for f in clean_files if f.lower().endswith((".m4a", ".mp3", ".aac", ".flac", ".ogg"))]
+            if audio_files:
+                audio_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                target_file = audio_files[0]
+            elif clean_files:
+                clean_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                target_file = clean_files[0]
             else:
-                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: No downloaded media file produced.")
+                raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: No downloaded audio file produced.")
+        else:
+            # For video requests, strictly select .mp4 video file with audio
+            video_files = [f for f in clean_files if f.lower().endswith((".mp4", ".mkv", ".webm"))]
+            if video_files:
+                video_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                target_file = video_files[0]
+            elif clean_files:
+                clean_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                target_file = clean_files[0]
+            else:
+                raw_files = [os.path.join(task_dir, f) for f in all_entries if not f.endswith((".part", ".ytdl", ".tmp"))]
+                raw_mp4s = [f for f in raw_files if f.lower().endswith((".mp4", ".mkv", ".webm"))]
+                if raw_mp4s:
+                    raw_mp4s.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                    target_file = raw_mp4s[0]
+                elif raw_files:
+                    raw_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+                    target_file = raw_files[0]
+                else:
+                    raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: No downloaded media file produced.")
 
-        is_video = target_file.lower().endswith((".mp4", ".mkv", ".webm"))
-        ValidationService.validate_file(target_file, is_video=is_video)
+        is_video_res = target_file.lower().endswith((".mp4", ".mkv", ".webm"))
+        ValidationService.validate_file(target_file, is_video=is_video_res)
         return target_file

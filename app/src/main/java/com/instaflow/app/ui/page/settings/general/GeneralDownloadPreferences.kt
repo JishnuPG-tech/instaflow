@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FastForward
 import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.HistoryToggleOff
 import androidx.compose.material.icons.outlined.Image
@@ -242,6 +243,20 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
                                 downloadNotification = !downloadNotification
                                 PreferenceUtil.updateValue(NOTIFICATION, downloadNotification)
                             }
+                        },
+                    )
+                }
+
+                item {
+                    var fastMode by com.instaflow.app.util.FAST_MODE.booleanState
+                    PreferenceSwitch(
+                        title = "Fast Mode",
+                        description = "Instantly download the best quality after analysis",
+                        icon = Icons.Outlined.FastForward,
+                        isChecked = fastMode,
+                        onClick = {
+                            fastMode = !fastMode
+                            com.instaflow.app.util.FAST_MODE.updateBoolean(fastMode)
                         },
                     )
                 }

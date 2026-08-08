@@ -107,6 +107,8 @@ const val USE_CUSTOM_AUDIO_PRESET = "custom_audio_preset"
 
 const val MERGE_MULTI_AUDIO_STREAM = "multi_audio_stream"
 
+const val FAST_MODE = "fast_mode"
+
 const val DOWNLOAD_TYPE_INITIALIZATION = "download_type_init"
 private const val DOWNLOAD_TYPE = "download_type"
 
@@ -214,6 +216,7 @@ private val BooleanPreferenceDefaults =
         YT_DLP_AUTO_UPDATE to true,
         NOTIFICATION to true,
         EMBED_METADATA to true,
+        FAST_MODE to false,
         USE_CUSTOM_AUDIO_PRESET to false,
     )
 

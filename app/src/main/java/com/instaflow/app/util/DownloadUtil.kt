@@ -86,12 +86,20 @@ object DownloadUtil {
         downloadPreferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
         taskKey: String? = null,
         playlistIndex: Int? = null,
-    ): Result<YoutubeDLInfo> =
-        YoutubeDL.runCatching {
+    ): Result<YoutubeDLInfo> {
+        val isInstagram = playlistURL.contains("instagram.com") || playlistURL.contains("cdninstagram.com")
+        
+        if (isInstagram && RemoteProcessingEngine.isServerAvailable() && playlistIndex == null) {
+            Log.i(TAG, "[Pipeline] Offloading Instagram analysis to RemoteProcessingEngine")
+            val remoteRes = RemoteProcessingEngine.analyzeUrl(playlistURL)
+            if (remoteRes.isSuccess) return remoteRes
+            Log.w(TAG, "[Pipeline] Remote analysis failed, falling back to local yt-dlp")
+        }
+
+        return YoutubeDL.runCatching {
             ToastUtil.makeToastSuspend(context.getString(R.string.fetching_playlist_info))
             val request = YoutubeDLRequest(playlistURL)
             with(request) {
-                val isInstagram = playlistURL.contains("instagram.com") || playlistURL.contains("cdninstagram.com")
                 if (!isInstagram && playlistIndex == null) {
                     addOption("--flat-playlist")
                 }
@@ -135,6 +143,7 @@ object DownloadUtil {
                 } else playlistInfo
             }
         }
+    }
 
     @CheckResult
     private fun getVideoInfo(
@@ -189,6 +198,14 @@ object DownloadUtil {
         preferences: DownloadPreferences = DownloadPreferences.createFromPreferences(),
     ): Result<VideoInfo> {
         val isInstagram = url.contains("instagram.com") || url.contains("cdninstagram.com")
+        
+        if (isInstagram && RemoteProcessingEngine.isServerAvailable() && playlistIndex == null) {
+            val remoteRes = RemoteProcessingEngine.analyzeUrl(url)
+            if (remoteRes.isSuccess && remoteRes.getOrNull() is VideoInfo) {
+                return Result.success(remoteRes.getOrNull() as VideoInfo)
+            }
+        }
+
         with(preferences) {
             val request =
                 YoutubeDLRequest(url).apply {
@@ -897,13 +914,15 @@ object DownloadUtil {
 
             // Check if InstaFlow v2 Remote Processing Engine server is active
             if (RemoteProcessingEngine.isServerAvailable()) {
-                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url")
+                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (format: '$formatIdString', audioOnly: $extractAudio)")
                 val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
                 val remoteResult = RemoteProcessingEngine.downloadMedia(
                     context = context,
                     urlStr = url,
                     downloadDir = downloadDir,
                     itemIndex = playlistItem,
+                    formatId = formatIdString,
+                    audioOnly = extractAudio,
                     videoInfo = videoInfo,
                     progressCallback = progressCallback
                 )

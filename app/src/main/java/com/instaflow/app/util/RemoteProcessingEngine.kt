@@ -3,13 +3,17 @@ package com.instaflow.app.util
 import android.content.Context
 import android.media.MediaScannerConnection
 import android.util.Log
-import com.yausername.youtubedl_android.mapper.VideoInfo
+import com.instaflow.app.util.PlaylistResult
+import com.instaflow.app.util.VideoInfo
+import com.instaflow.app.util.YoutubeDLInfo
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
 
 object RemoteProcessingEngine {
     private const val TAG = "RemoteEngine"
@@ -17,12 +21,14 @@ object RemoteProcessingEngine {
     // Live Hugging Face Space Base URL with fallback to local emulator/server
     var serverBaseUrl: String = "https://jishnupg-opencode-cli.hf.space/instaflow"
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     fun isServerAvailable(): Boolean {
         return try {
             val url = URL("$serverBaseUrl/health")
             val conn = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 1500
-                readTimeout = 1500
+                connectTimeout = 2000
+                readTimeout = 2000
                 requestMethod = "GET"
             }
             val code = conn.responseCode
@@ -33,11 +39,60 @@ object RemoteProcessingEngine {
         }
     }
 
+    fun analyzeUrl(urlStr: String): Result<YoutubeDLInfo> {
+        var connection: HttpURLConnection? = null
+        return try {
+            val endpoint = "$serverBaseUrl/api/v1/analyze"
+            Log.i(TAG, "[RemoteEngine] Analyzing URL via server: $urlStr")
+            
+            val url = URL(endpoint)
+            connection = (url.openConnection() as HttpURLConnection).apply {
+                connectTimeout = 10000
+                readTimeout = 30000
+                requestMethod = "POST"
+                setRequestProperty("Content-Type", "application/json")
+                setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.0.0")
+                doOutput = true
+            }
+
+            val jsonReq = "{\"url\": \"$urlStr\"}"
+            connection.outputStream.use { it.write(jsonReq.toByteArray()) }
+
+            val responseCode = connection.responseCode
+            if (responseCode != HttpURLConnection.HTTP_OK) {
+                val err = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+                return Result.failure(Exception("Server analysis failed ($responseCode): $err"))
+            }
+
+            val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
+            val root = json.parseToJsonElement(responseBody) as JsonObject
+            
+            val rawMetadata = root["raw_metadata"]?.toString() ?: throw Exception("Missing raw_metadata in server response")
+            
+            // The server returns the full yt-dlp metadata in 'raw_metadata'
+            try {
+                val playlist = json.decodeFromString<PlaylistResult>(rawMetadata)
+                if (playlist.type == "playlist") {
+                    return Result.success(playlist)
+                }
+            } catch (_: Exception) {}
+
+            Result.success(json.decodeFromString<VideoInfo>(rawMetadata))
+        } catch (e: Exception) {
+            Log.e(TAG, "[RemoteEngine] Analysis failure: ${e.message}")
+            Result.failure(e)
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
     fun downloadMedia(
         context: Context,
         urlStr: String,
         downloadDir: File,
         itemIndex: Int = 0,
+        formatId: String? = null,
+        audioOnly: Boolean = false,
         videoInfo: Any? = null,
         progressCallback: ((Float, Long, String) -> Unit)?
     ): Result<List<String>> {
@@ -47,8 +102,17 @@ object RemoteProcessingEngine {
 
         return try {
             val encodedUrl = URLEncoder.encode(urlStr, "UTF-8")
-            val queryStr = if (itemIndex > 0) "$serverBaseUrl/api/v1/download?url=$encodedUrl&item=$itemIndex"
-            else "$serverBaseUrl/api/v1/download?url=$encodedUrl"
+            val queryBuilder = StringBuilder("$serverBaseUrl/api/v1/download?url=$encodedUrl")
+            if (itemIndex > 0) {
+                queryBuilder.append("&item=$itemIndex")
+            }
+            if (!formatId.isNullOrEmpty()) {
+                queryBuilder.append("&format=${URLEncoder.encode(formatId, "UTF-8")}")
+            }
+            if (audioOnly) {
+                queryBuilder.append("&audio_only=true")
+            }
+            val queryStr = queryBuilder.toString()
 
             Log.i(TAG, "[RemoteEngine] Connecting to processing server: $queryStr")
             val url = URL(queryStr)

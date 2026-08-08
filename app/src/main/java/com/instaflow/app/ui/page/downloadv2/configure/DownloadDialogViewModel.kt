@@ -12,6 +12,8 @@ import com.instaflow.app.util.DownloadUtil
 import com.instaflow.app.util.InstagramUrlType
 import com.instaflow.app.util.PlaylistResult
 import com.instaflow.app.util.VideoInfo
+import com.instaflow.app.util.FAST_MODE
+import com.instaflow.app.util.PreferenceUtil.getBoolean
 import com.yausername.youtubedl_android.YoutubeDL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -353,6 +355,23 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
                                 // Run validation; logs warnings and throws on hard errors
                                 com.instaflow.app.features.instagram.repository.InstagramQualityRepository.validateVideoInfo(info)
                                 val uiModel = com.instaflow.app.features.instagram.repository.InstagramHandlerDispatch.handle(info, urlType)
+                                
+                                val isFastMode = FAST_MODE.getBoolean()
+                                if (isFastMode && urlType != InstagramUrlType.CAROUSEL) {
+                                    Log.i(TAG, "[Pipeline] Fast Mode enabled — enqueuing best quality immediately")
+                                    val bestFormat = uiModel.videoQualityOptions.firstOrNull() ?: uiModel.audioQualityOptions.firstOrNull()
+                                    val p = prefs.copy(
+                                        formatIdString = bestFormat?.formatId ?: "",
+                                        extractAudio = bestFormat?.isAudioOnly ?: false
+                                    )
+                                    val downloadUrl = info.webpageUrl?.ifBlank { null }
+                                        ?: info.originalUrl?.ifBlank { null }
+                                        ?: normalized
+                                    downloader.enqueue(Task(url = downloadUrl, preferences = p))
+                                    hideDialog()
+                                    return@withContext
+                                }
+
                                 Log.i(TAG, "[Pipeline] yt-dlp OK        : ${extractionMs}ms")
                                 Log.i(TAG, "[Pipeline] Extractor        : ${info.extractorKey}")
                                 Log.i(TAG, "[Pipeline] Title            : ${info.title}")

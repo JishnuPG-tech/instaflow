@@ -35,11 +35,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
 import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -200,6 +202,7 @@ sealed interface UiAction {
 fun DownloadPageV2(
     modifier: Modifier = Modifier,
     onMenuOpen: (() -> Unit) = {},
+    onNavigateToAccountProfile: () -> Unit = {},
     dialogViewModel: DownloadDialogViewModel,
     accountsViewModel: AccountsViewModel = koinViewModel(),
     downloader: DownloaderV2 = koinInject(),
@@ -220,8 +223,8 @@ fun DownloadPageV2(
         taskDownloadStateMap = downloader.getTaskStateMap(),
         isAccountConnected = accountState.isInstagramConnected,
         onConnectAccount = {
-            dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(null)) // Generic trigger
-            // For V2, we might want a direct way to navigate, but let's stick to the dialog for now or use the drawer.
+            view.slightHapticFeedback()
+            onNavigateToAccountProfile()
         },
         downloadCallback = {
             view.slightHapticFeedback()
@@ -481,21 +484,9 @@ fun DownloadPageImplV2(
                             with(state.viewState) {
                                 VideoCardV2(
                                     modifier = Modifier.padding(bottom = 20.dp).padding(),
-                                    viewState = this,
-                                    actionButton = {
-                                        ActionButton(
-                                            modifier = Modifier,
-                                            downloadState = state.downloadState,
-                                        ) {
-                                            onActionPost(task, it)
-                                        }
-                                    },
-                                    stateIndicator = {
-                                        CardStateIndicator(
-                                            modifier = Modifier,
-                                            downloadState = state.downloadState,
-                                        )
-                                    },
+                                    viewState = state.viewState,
+                                    downloadState = state.downloadState,
+                                    onActionPost = { onActionPost(task, it) },
                                     onButtonClick = { showActionSheet(task) },
                                 )
                             }
@@ -628,27 +619,32 @@ private fun HeaderExpanded(modifier: Modifier = Modifier, isAccountConnected: Bo
 
 @Composable
 fun FABs(modifier: Modifier = Modifier, downloadCallback: () -> Unit = {}) {
-    val expanded = LocalWindowWidthState.current != WindowWidthSizeClass.Compact
+    val clipboardManager = LocalClipboardManager.current
+    var hasIgLink by remember { mutableStateOf(false) }
+    
+    // Simple heuristic to check if we should show "Paste & Analyze"
+    LaunchedEffect(Unit) {
+        delay(500) // Small delay to avoid flickering on start
+        val text = clipboardManager.getText()?.text ?: ""
+        hasIgLink = text.contains("instagram.com/") || text.contains("instagr.am/")
+    }
+
     Column(modifier = modifier.padding(6.dp), horizontalAlignment = Alignment.End) {
-        FloatingActionButton(
+        ExtendedFloatingActionButton(
             onClick = downloadCallback,
-            content = {
-                if (expanded) {
-                    Row(
-                        modifier = Modifier.widthIn(min = 80.dp).padding(horizontal = 16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(Icons.Outlined.FileDownload, contentDescription = null)
-                        Spacer(Modifier.width(12.dp))
-                        Text(stringResource(R.string.download))
-                    }
-                } else {
-                    Icon(
-                        Icons.Outlined.FileDownload,
-                        contentDescription = stringResource(R.string.download),
-                    )
-                }
+            icon = {
+                Icon(
+                    if (hasIgLink) Icons.Outlined.ContentPaste else Icons.Outlined.FileDownload,
+                    contentDescription = null
+                )
             },
+            text = {
+                Text(
+                    if (hasIgLink) "Paste & Analyze" else stringResource(R.string.download)
+                )
+            },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             modifier = Modifier.padding(vertical = 12.dp),
         )
     }

@@ -26,11 +26,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.Collections
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Error
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.RestartAlt
+import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -92,10 +97,15 @@ private val LabelContainerColor: Color = Color.Black.copy(alpha = 0.68f)
 fun VideoCardV2(
     modifier: Modifier = Modifier,
     viewState: Task.ViewState,
-    stateIndicator: @Composable (BoxScope.() -> Unit)? = null,
-    actionButton: @Composable (BoxScope.() -> Unit)? = null,
+    downloadState: Task.DownloadState,
+    onActionPost: (UiAction) -> Unit,
     onButtonClick: () -> Unit,
 ) {
+    val tintColor = com.instaflow.app.util.ColorUtil.rememberVibrantColor(
+        thumbnailUrl = viewState.thumbnailUrl, 
+        defaultColor = ActionButtonContentColor
+    )
+
     with(viewState) {
         VideoCardV2(
             modifier = modifier,
@@ -104,8 +114,21 @@ fun VideoCardV2(
             uploader = uploader,
             duration = duration,
             fileSizeApprox = fileSizeApprox,
-            stateIndicator = stateIndicator,
-            actionButton = actionButton,
+            mediaType = mediaType,
+            actionButton = {
+                ActionButton(
+                    modifier = Modifier,
+                    downloadState = downloadState,
+                    tintColor = tintColor,
+                    onActionPost = onActionPost,
+                )
+            },
+            stateIndicator = {
+                CardStateIndicator(
+                    modifier = Modifier,
+                    downloadState = downloadState,
+                )
+            },
             onButtonClick = onButtonClick,
         )
     }
@@ -128,6 +151,7 @@ fun VideoListItem(
             fileSizeApprox = fileSizeApprox,
             stateIndicator = stateIndicator,
             onButtonClick = onButtonClick,
+            mediaType = mediaType,
         )
     }
 }
@@ -140,12 +164,14 @@ fun VideoListItem(
     uploader: String = "",
     duration: Int = 0,
     fileSizeApprox: Double = .0,
+    mediaType: Task.ViewState.MediaType = Task.ViewState.MediaType.VIDEO,
     stateIndicator: @Composable (() -> Unit)? = null,
     onButtonClick: () -> Unit,
 ) {
     Row(modifier = modifier.height(IntrinsicSize.Min), verticalAlignment = Alignment.Top) {
         Box(modifier = Modifier) {
             ListItemImage(modifier = Modifier, thumbnailModel = thumbnailModel)
+            Box(Modifier.align(Alignment.TopEnd)) { MediaTypeIndicator(mediaType = mediaType) }
             VideoInfoLabel(
                 modifier = Modifier.align(Alignment.BottomEnd),
                 duration = duration,
@@ -227,6 +253,7 @@ fun VideoCardV2(
     uploader: String = "",
     duration: Int = 0,
     fileSizeApprox: Double = .0,
+    mediaType: Task.ViewState.MediaType = Task.ViewState.MediaType.VIDEO,
     stateIndicator: @Composable (BoxScope.() -> Unit)? = null,
     actionButton: @Composable (BoxScope.() -> Unit)? = null,
     onButtonClick: () -> Unit,
@@ -239,11 +266,18 @@ fun VideoCardV2(
     Card(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = containerColor),
+        shape = RoundedCornerShape(topStart = 24.dp, bottomEnd = 24.dp, topEnd = 4.dp, bottomStart = 4.dp)
     ) {
         Column {
             Box(Modifier.fillMaxWidth()) {
-                CardImage(modifier = Modifier, thumbnailModel = thumbnailModel)
+                CardImage(
+                    modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, bottomEnd = 24.dp, topEnd = 4.dp, bottomStart = 4.dp)),
+                    thumbnailModel = thumbnailModel
+                )
                 Box(Modifier.align(Alignment.TopStart)) { stateIndicator?.invoke(this) }
+                Box(Modifier.align(Alignment.TopEnd)) {
+                    MediaTypeIndicator(mediaType = mediaType)
+                }
                 Box(Modifier.align(Alignment.Center)) { actionButton?.invoke(this) }
                 VideoInfoLabel(
                     modifier = Modifier.align(Alignment.BottomEnd),
@@ -261,6 +295,36 @@ fun VideoCardV2(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MediaTypeIndicator(
+    modifier: Modifier = Modifier,
+    mediaType: Task.ViewState.MediaType
+) {
+    val icon =
+        when (mediaType) {
+            Task.ViewState.MediaType.VIDEO -> Icons.Rounded.PlayArrow
+            Task.ViewState.MediaType.PHOTO -> Icons.Rounded.Image
+            Task.ViewState.MediaType.CAROUSEL -> Icons.Rounded.Collections
+            Task.ViewState.MediaType.PROFILE_PIC -> Icons.Rounded.AccountCircle
+            Task.ViewState.MediaType.UNKNOWN -> null
+        }
+
+    if (icon != null) {
+        Surface(
+            modifier = modifier.padding(8.dp),
+            color = LabelContainerColor,
+            shape = CircleShape,
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.padding(4.dp).size(16.dp),
+                tint = Color.White,
+            )
         }
     }
 }
@@ -524,14 +588,15 @@ private fun CardItemStateText(modifier: Modifier = Modifier, downloadState: Task
 fun ActionButton(
     modifier: Modifier = Modifier,
     downloadState: Task.DownloadState,
+    tintColor: Color = ActionButtonContentColor,
     onActionPost: (UiAction) -> Unit,
 ) =
     when (downloadState) {
         is Error -> {
-            RestartButton(modifier = modifier) { onActionPost(UiAction.Resume) }
+            RestartButton(modifier = modifier, tintColor = tintColor) { onActionPost(UiAction.Resume) }
         }
         is Canceled -> {
-            ResumeButton(modifier = modifier, downloadState.progress) {
+            ResumeButton(modifier = modifier, progress = downloadState.progress, tintColor = tintColor) {
                 onActionPost(UiAction.Resume)
             }
         }
@@ -539,21 +604,23 @@ fun ActionButton(
             val filePath = downloadState.filePath ?: ""
             val ext = filePath.substringAfterLast('.', "").lowercase()
             val isImage = ext in listOf("jpg", "jpeg", "png", "webp")
-            if (!isImage) {
-                PlayVideoButton(modifier = modifier) {
+            if (isImage) {
+                ViewImageButton(modifier = modifier, tintColor = tintColor) {
                     onActionPost(UiAction.OpenFile(downloadState.filePath))
                 }
             } else {
-                Spacer(modifier = Modifier)
+                PlayVideoButton(modifier = modifier, tintColor = tintColor) {
+                    onActionPost(UiAction.OpenFile(downloadState.filePath))
+                }
             }
         }
         is FetchingInfo,
         ReadyWithInfo,
         Idle -> {
-            ProgressButton(modifier = modifier, progress = -1f) { onActionPost(UiAction.Cancel) }
+            ProgressButton(modifier = modifier, progress = -1f, tintColor = tintColor) { onActionPost(UiAction.Cancel) }
         }
         is Running -> {
-            ProgressButton(modifier = modifier, progress = downloadState.progress) {
+            ProgressButton(modifier = modifier, progress = downloadState.progress, tintColor = tintColor) {
                 onActionPost(UiAction.Cancel)
             }
         }
@@ -563,6 +630,7 @@ fun ActionButton(
 private fun ResumeButton(
     modifier: Modifier = Modifier,
     progress: Float? = null,
+    tintColor: Color,
     onClick: () -> Unit,
 ) {
     val background = ActionButtonContainerColor
@@ -579,7 +647,7 @@ private fun ResumeButton(
             CircularProgressIndicator(
                 progress = { progress },
                 modifier = Modifier.size(IconButtonSize).align(Alignment.Center),
-                color = ActionButtonContentColor,
+                color = tintColor,
                 trackColor = Color.Transparent,
                 gapSize = 0.dp,
             )
@@ -588,13 +656,13 @@ private fun ResumeButton(
             imageVector = Icons.Rounded.Download,
             contentDescription = stringResource(R.string.restart),
             modifier = Modifier.size(IconSize).align(Alignment.Center),
-            tint = ActionButtonContentColor,
+            tint = tintColor,
         )
     }
 }
 
 @Composable
-fun RestartButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun RestartButton(modifier: Modifier = Modifier, tintColor: Color, onClick: () -> Unit) {
     val background = ActionButtonContainerColor
 
     Box(
@@ -609,20 +677,20 @@ fun RestartButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
             imageVector = Icons.Rounded.RestartAlt,
             contentDescription = stringResource(R.string.restart),
             modifier = Modifier.size(IconSize).align(Alignment.Center),
-            tint = ActionButtonContentColor,
+            tint = tintColor,
         )
     }
 }
 
 @Composable
-private fun PlayVideoButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
+private fun PlayVideoButton(modifier: Modifier = Modifier, tintColor: Color, onClick: () -> Unit) {
     FilledIconButton(
         onClick = onClick,
         modifier = modifier.size(IconButtonSize),
         colors =
             IconButtonDefaults.filledIconButtonColors(
                 containerColor = ActionButtonContainerColor,
-                contentColor = ActionButtonContentColor,
+                contentColor = tintColor,
             ),
     ) {
         Icon(
@@ -634,7 +702,26 @@ private fun PlayVideoButton(modifier: Modifier = Modifier, onClick: () -> Unit) 
 }
 
 @Composable
-private fun ProgressButton(modifier: Modifier = Modifier, progress: Float, onClick: () -> Unit) {
+private fun ViewImageButton(modifier: Modifier = Modifier, tintColor: Color, onClick: () -> Unit) {
+    FilledIconButton(
+        onClick = onClick,
+        modifier = modifier.size(IconButtonSize),
+        colors =
+            IconButtonDefaults.filledIconButtonColors(
+                containerColor = ActionButtonContainerColor,
+                contentColor = tintColor,
+            ),
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.Visibility,
+            contentDescription = stringResource(R.string.open_file),
+            modifier = Modifier.size(IconSize),
+        )
+    }
+}
+
+@Composable
+private fun ProgressButton(modifier: Modifier = Modifier, progress: Float, tintColor: Color, onClick: () -> Unit) {
     val animatedProgress by
         animateFloatAsState(
             progress,
@@ -654,14 +741,14 @@ private fun ProgressButton(modifier: Modifier = Modifier, progress: Float, onCli
         if (progress < 0) {
             CircularProgressIndicator(
                 modifier = Modifier.size(IconButtonSize).align(Alignment.Center),
-                color = ActionButtonContentColor,
+                color = tintColor,
                 trackColor = Color.Transparent,
             )
         } else {
             CircularProgressIndicator(
                 { animatedProgress },
                 modifier = Modifier.size(IconButtonSize).align(Alignment.Center),
-                color = ActionButtonContentColor,
+                color = tintColor,
                 gapSize = 0.dp,
                 trackColor = Color.Transparent,
             )
@@ -670,7 +757,7 @@ private fun ProgressButton(modifier: Modifier = Modifier, progress: Float, onCli
             imageVector = Icons.Rounded.Pause,
             contentDescription = null,
             modifier = Modifier.align(Alignment.Center).size(IconSize),
-            tint = ActionButtonContentColor,
+            tint = tintColor,
         )
     }
 }

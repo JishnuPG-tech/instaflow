@@ -15,7 +15,9 @@ router = APIRouter()
 def download_get(
     background_tasks: BackgroundTasks,
     url: str = Query(...),
-    item: Optional[int] = Query(None)
+    item: Optional[int] = Query(None),
+    format: Optional[str] = Query(None),
+    audio_only: Optional[bool] = Query(False)
 ):
     if not is_valid_instagram_url(url):
         raise HTTPException(
@@ -41,7 +43,9 @@ def download_get(
             url=url,
             task_dir=task_dir,
             item_index=item,
-            item_entry=item_entry
+            item_entry=item_entry,
+            requested_format=format,
+            audio_only=audio_only
         )
         
         return StreamService.create_streaming_response(filepath)

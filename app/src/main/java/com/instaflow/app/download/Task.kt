@@ -138,7 +138,13 @@ data class Task(
         val thumbnailUrl: String? = null,
         val videoFormats: List<Format>? = null,
         val audioOnlyFormats: List<Format>? = null,
+        val mediaType: MediaType = MediaType.VIDEO,
     ) {
+        @Serializable
+        enum class MediaType {
+            VIDEO, PHOTO, CAROUSEL, PROFILE_PIC, UNKNOWN
+        }
+
         companion object {
             fun fromVideoInfo(info: VideoInfo): ViewState {
                 val formats =
@@ -153,8 +159,18 @@ data class Task(
                 val isInstagram = info.extractorKey.lowercase().contains("instagram")
                 val hasVideo = info.formats?.any { it.vcodec != "none" && it.vcodec != null } ?: false
                 
+                val mediaType = when {
+                    isInstagram && (info.webpageUrl?.contains("/p/") == true || info.webpageUrl?.contains("/reels/") == true || info.webpageUrl?.contains("/reel/") == true) && hasVideo -> MediaType.VIDEO
+                    isInstagram && (info.webpageUrl?.contains("/p/") == true) && !hasVideo -> MediaType.PHOTO
+                    isInstagram && info.webpageUrl?.contains("/stories/") == true -> MediaType.VIDEO
+                    isInstagram && info.webpageUrl?.contains("/s/") == true -> MediaType.VIDEO // Highlights
+                    info.playlistIndex != null -> MediaType.CAROUSEL
+                    isInstagram && !hasVideo -> MediaType.PHOTO
+                    else -> MediaType.VIDEO
+                }
+
                 val durationFormatted = when {
-                    isInstagram && !hasVideo -> "Photo"
+                    mediaType == MediaType.PHOTO -> "Photo"
                     durationSec > 0 -> durationSec.toDurationText()
                     else -> null
                 }
@@ -170,6 +186,7 @@ data class Task(
                     fileSizeApprox = info.fileSize ?: info.fileSizeApprox ?: .0,
                     videoFormats = videoFormats,
                     audioOnlyFormats = audioOnlyFormats,
+                    mediaType = mediaType,
                 )
             }
         }

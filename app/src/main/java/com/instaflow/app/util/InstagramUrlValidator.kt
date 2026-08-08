@@ -45,6 +45,11 @@ object InstagramUrlValidator {
         Pattern.CASE_INSENSITIVE
     )
 
+    private val HIGHLIGHT_S_PATTERN = Pattern.compile(
+        "https?://(?:www\\.)?instagram\\.com/s/([A-Za-z0-9_-]+)",
+        Pattern.CASE_INSENSITIVE
+    )
+
     private val PROFILE_PATTERN = Pattern.compile(
         "https?://(?:www\\.)?instagram\\.com/([A-Za-z0-9._-]+)/?",
         Pattern.CASE_INSENSITIVE
@@ -93,6 +98,19 @@ object InstagramUrlValidator {
                 rawUrl = trimmed
             )
             Log.i(TAG, "[UrlValidator] Matched HIGHLIGHT -> shortcode=${res.shortcode}, rawUrl=$trimmed")
+            return res
+        }
+
+        // Check Story Highlight (Short Link)
+        val highlightSMatcher = HIGHLIGHT_S_PATTERN.matcher(trimmed)
+        if (highlightSMatcher.find()) {
+            val res = InstagramUrlParseResult(
+                isValid = true,
+                type = InstagramUrlType.HIGHLIGHT,
+                shortcode = highlightSMatcher.group(1),
+                rawUrl = trimmed
+            )
+            Log.i(TAG, "[UrlValidator] Matched HIGHLIGHT (S) -> shortcode=${res.shortcode}, rawUrl=$trimmed")
             return res
         }
 

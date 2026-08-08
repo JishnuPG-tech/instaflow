@@ -176,6 +176,7 @@ dependencies {
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.bundles.androidxCompose)
+    implementation(libs.androidx.palette.ktx)
     implementation(libs.bundles.accompanist)
 
     implementation(libs.coil.kt.compose)
