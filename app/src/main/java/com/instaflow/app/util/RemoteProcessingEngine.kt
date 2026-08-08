@@ -27,8 +27,8 @@ object RemoteProcessingEngine {
         return try {
             val url = URL("$serverBaseUrl/health")
             val conn = (url.openConnection() as HttpURLConnection).apply {
-                connectTimeout = 2000
-                readTimeout = 2000
+                connectTimeout = 8000
+                readTimeout = 8000
                 requestMethod = "GET"
             }
             val code = conn.responseCode

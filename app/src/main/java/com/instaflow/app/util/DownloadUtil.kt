@@ -914,9 +914,8 @@ object DownloadUtil {
                         Throwable("Invalid or empty media URL")
                     )
             }
-
-            // Check if InstaFlow v2 Remote Processing Engine server is active
-            if (RemoteProcessingEngine.isServerAvailable()) {
+            // Check if InstaFlow v2 Remote Processing Engine server is active or if Instagram URL
+            if (url.contains("instagram.com") || RemoteProcessingEngine.isServerAvailable()) {
                 Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio, merge: $mergePhotoAudio)")
                 val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
                 val remoteResult = RemoteProcessingEngine.downloadMedia(
@@ -937,8 +936,9 @@ object DownloadUtil {
                         insertInfoIntoDownloadHistory(videoInfo, paths)
                     }
                     return Result.success(if (privateMode) emptyList() else paths)
+                } else {
+                    Log.w(TAG, "[Pipeline] Primary Remote Engine execution returned error: ${remoteResult.exceptionOrNull()?.message}")
                 }
-                Log.w(TAG, "[Pipeline] Remote Processing Engine failed. Falling back to local engine...")
             }
 
             Log.i(TAG, "[Pipeline] Executing YoutubeDLRequest for target URL: '$url'")
