@@ -28,16 +28,18 @@ def download_get(
     task_dir = create_task_temp_dir()
     background_tasks.add_task(CleanupService.cleanup_task, task_dir)
 
+    item_entry = None
     try:
         raw_meta = MetadataService.fetch_metadata(url)
         entries = raw_meta.get("entries") or []
-        item_entry = None
-        
         if entries:
             idx = (item - 1) if (item and 0 < item <= len(entries)) else 0
             item_entry = entries[idx]
         else:
             item_entry = raw_meta
+    except Exception as meta_err:
+        import logging
+        logging.getLogger("DownloadAPI").warning(f"Metadata pre-fetch failed ({meta_err}). Proceeding directly to download...")
 
         filepath = DownloadService.download_item(
             url=url,

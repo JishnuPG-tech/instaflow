@@ -71,11 +71,23 @@ class DownloadService:
         else:
             logger.info("Executing Full Video Download with Audio Muxing")
             cmd.extend(["--merge-output-format", "mp4"])
-            if requested_format and requested_format not in ["best", "bestvideo+bestaudio/best", ""]:
-                # Custom requested resolution (e.g. 1080p, 720p)
-                cmd.extend(["-f", f"{requested_format}+bestaudio/b[ext=mp4]/best[ext=mp4]/best"])
-            else:
-                cmd.extend(["-f", "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"])
+            fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo[vcodec^=avc1]+bestaudio/b/best"
+            if requested_format:
+                req_lower = requested_format.lower().strip()
+                if "1080" in req_lower:
+                    fmt_str = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/b[ext=mp4]/best"
+                elif "720" in req_lower:
+                    fmt_str = "bestvideo[height<=720]+bestaudio/best[height<=720]/b[ext=mp4]/best"
+                elif "480" in req_lower:
+                    fmt_str = "bestvideo[height<=480]+bestaudio/best[height<=480]/b[ext=mp4]/best"
+                elif "360" in req_lower:
+                    fmt_str = "bestvideo[height<=360]+bestaudio/best[height<=360]/b[ext=mp4]/best"
+                elif req_lower in ["best", "optimal", "auto", "bestvideo+bestaudio/best"]:
+                    fmt_str = "b[ext=mp4]/best[ext=mp4]/bestvideo+bestaudio/b/best"
+                else:
+                    fmt_str = f"b[ext=mp4]/best[ext=mp4]/{requested_format}/best"
+
+            cmd.extend(["-f", fmt_str])
         
         if item_index and item_index > 0:
             cmd.extend(["--playlist-items", str(item_index)])

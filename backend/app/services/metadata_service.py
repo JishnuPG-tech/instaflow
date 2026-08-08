@@ -16,9 +16,7 @@ class MetadataService:
         args = [
             "--add-header", "X-IG-App-ID:936619743392459",
             "--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            "--add-header", "Referer:https://www.instagram.com/",
-            "--allow-unplayable-formats",
-            "--ignore-no-formats-error"
+            "--add-header", "Referer:https://www.instagram.com/"
         ]
         if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
             args.extend(["--cookies", settings.COOKIES_FILE])
@@ -30,13 +28,32 @@ class MetadataService:
         cmd = [
             sys.executable, "-m", "yt_dlp",
             "--dump-single-json",
-            "-4"
+            "-4",
+            "--no-playlist"
         ] + cls.get_ig_headers() + [norm_url]
 
         logger.info(f"Fetching yt-dlp metadata for {norm_url}")
         res = subprocess.run(cmd, capture_output=True, text=True)
+        
         if res.returncode != 0:
             err = res.stderr
+            logger.warning(f"Primary yt-dlp metadata extraction failed: {err[:200]}. Retrying fallback...")
+            # Fallback attempt without cookies or extra headers if cookies are corrupted/expired
+            cmd_fallback = [
+                sys.executable, "-m", "yt_dlp",
+                "--dump-single-json",
+                "-4",
+                "--no-playlist",
+                "--add-header", "User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                norm_url
+            ]
+            res_fb = subprocess.run(cmd_fallback, capture_output=True, text=True)
+            if res_fb.returncode == 0:
+                try:
+                    return json.loads(res_fb.stdout)
+                except Exception:
+                    pass
+
             logger.error(f"yt-dlp metadata extraction failed: {err}")
             if "No video formats found" in err or "Login required" in err:
                 raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
