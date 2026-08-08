@@ -146,17 +146,17 @@ class DownloadService:
             if requested_format:
                 req_lower = requested_format.lower().strip()
                 if "2160" in req_lower or "4k" in req_lower:
-                    fmt_str = "bestvideo[height<=2160]+bestaudio/best[height<=2160]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=3840][width<=2160]+bestaudio/bestvideo[height<=2160]+bestaudio/best[height<=2160]/b[ext=mp4]/b/best"
                 elif "1440" in req_lower or "2k" in req_lower:
-                    fmt_str = "bestvideo[height<=1440]+bestaudio/best[height<=1440]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=2560][width<=1440]+bestaudio/bestvideo[height<=1440]+bestaudio/best[height<=1440]/b[ext=mp4]/b/best"
                 elif "1080" in req_lower:
-                    fmt_str = "bestvideo[height<=1080]+bestaudio/best[height<=1080]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=1920][width<=1080]+bestaudio/bestvideo[height<=1080]+bestaudio/best[height<=1080]/b[ext=mp4]/b/best"
                 elif "720" in req_lower:
-                    fmt_str = "bestvideo[height<=720]+bestaudio/best[height<=720]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=1280][width<=720]+bestaudio/bestvideo[height<=720]+bestaudio/best[height<=720]/b[ext=mp4]/b/best"
                 elif "480" in req_lower:
-                    fmt_str = "bestvideo[height<=480]+bestaudio/best[height<=480]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=854][width<=480]+bestaudio/bestvideo[height<=480]+bestaudio/best[height<=480]/b[ext=mp4]/b/best"
                 elif "360" in req_lower:
-                    fmt_str = "bestvideo[height<=360]+bestaudio/best[height<=360]/b[ext=mp4]/best"
+                    fmt_str = "bestvideo[height<=640][width<=360]+bestaudio/bestvideo[height<=360]+bestaudio/best[height<=360]/b[ext=mp4]/b/best"
                 elif req_lower in ["lowest", "worst"]:
                     fmt_str = "worstvideo+worstaudio/worst"
                 elif req_lower in ["best", "optimal", "auto", "bestvideo+bestaudio/best"]:
