@@ -177,8 +177,31 @@ object InstagramQualityRepository {
             }
 
             // Audio for Photos (Background Music)
-            rawFormats.filter { it.acodec != "none" && it.acodec != null && (it.vcodec == "none" || it.vcodec == null) }.maxByOrNull { it.abr ?: 0.0 }?.let { f ->
-                result.add(InstagramFormat(f.formatId ?: "bestaudio", "Background Music (M4A)", 0, 0, "m4a", calculateSizeBytes(f, durationSeconds), true))
+            val audioFormat = rawFormats.filter { it.acodec != "none" && it.acodec != null && (it.vcodec == "none" || it.vcodec == null) }.maxByOrNull { it.abr ?: 0.0 }
+            
+            if (audioFormat != null) {
+                // Feature 1: Single-Frame MP4 Video (Photo + Music)
+                result.add(InstagramFormat(
+                    formatId = "merge_photo_audio", 
+                    resolutionLabel = "Photo + Music (MP4 Video)", 
+                    width = 1080, 
+                    height = 1350, 
+                    ext = "mp4", 
+                    fileSizeApprox = calculateSizeBytes(audioFormat, durationSeconds) + 500000, 
+                    isAudioOnly = false,
+                    mergePhotoAudio = true
+                ))
+
+                // Feature 2: Only Music
+                result.add(InstagramFormat(
+                    formatId = audioFormat.formatId ?: "bestaudio", 
+                    resolutionLabel = "Only Music (M4A/MP3)", 
+                    width = 0, 
+                    height = 0, 
+                    ext = "m4a", 
+                    fileSizeApprox = calculateSizeBytes(audioFormat, durationSeconds), 
+                    isAudioOnly = true
+                ))
             }
             
             return result

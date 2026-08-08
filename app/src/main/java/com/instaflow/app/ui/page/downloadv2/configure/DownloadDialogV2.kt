@@ -441,11 +441,15 @@ private fun DownloadDialogContent(
                     audioQualityOptions = model.audioQualityOptions,
                     onDismissRequest = { onActionPost(Action.HideSheet) },
                     onDownloadWithFormat = { format ->
-                        val p = preferences.copy(formatIdString = format.formatId, extractAudio = format.isAudioOnly)
+                        val p = preferences.copy(
+                            formatIdString = format.formatId, 
+                            extractAudio = format.isAudioOnly,
+                            mergePhotoAudio = format.mergePhotoAudio
+                        )
                         val downloadUrl = info.webpageUrl?.ifBlank { null }
                             ?: info.originalUrl?.ifBlank { null }
                             ?: state.targetUrl
-                        Log.i("DownloadDialogV2", "[Pipeline] Single item download requested — url=$downloadUrl, formatId='${format.formatId}'")
+                        Log.i("DownloadDialogV2", "[Pipeline] Single item download requested — url=$downloadUrl, formatId='${format.formatId}', merge=${format.mergePhotoAudio}")
                         onActionPost(Action.DownloadWithPreset(listOf(downloadUrl), p))
                     }
                 )

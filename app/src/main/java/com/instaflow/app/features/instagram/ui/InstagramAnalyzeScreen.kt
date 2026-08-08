@@ -25,6 +25,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import com.instaflow.app.ui.component.CircularWavyProgressIndicator
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.blur
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +55,9 @@ fun InstagramAnalyzeScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Note: In a real app, we would pass the preview thumbnail URL here if known.
+    // For now, we focus on the Wavy indicator.
+    
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,12 +79,14 @@ fun InstagramAnalyzeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(56.dp),
+                CircularWavyProgressIndicator(
+                    modifier = Modifier.size(80.dp),
                     color = MaterialTheme.colorScheme.primary,
-                    strokeWidth = 4.dp
+                    strokeWidth = 6.dp,
+                    waveCount = 10,
+                    waveAmplitude = 6.dp
                 )
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(40.dp))
                 Text(
                     text = "Analyzing Instagram Link...",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp),
@@ -86,27 +94,29 @@ fun InstagramAnalyzeScreen(
                 )
                 Spacer(modifier = Modifier.height(28.dp))
                 
-                Column(modifier = Modifier.fillMaxWidth(0.8f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.fillMaxWidth(0.85f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     steps.forEach { step ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                            Box(modifier = Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                            Box(modifier = Modifier.size(28.dp), contentAlignment = Alignment.Center) {
                                 when (step.status) {
                                     StepStatus.PENDING -> {
-                                        Surface(modifier = Modifier.size(8.dp), shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.outlineVariant) {}
+                                        Surface(modifier = Modifier.size(10.dp), shape = CircleShape, color = MaterialTheme.colorScheme.outlineVariant) {}
                                     }
                                     StepStatus.IN_PROGRESS -> {
-                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.primary)
+                                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.5.dp, color = MaterialTheme.colorScheme.primary)
                                     }
                                     StepStatus.COMPLETED -> {
-                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
                                     }
                                     StepStatus.FAILED -> {}
                                 }
                             }
-                            Spacer(modifier = Modifier.width(16.dp))
+                            Spacer(modifier = Modifier.width(18.dp))
                             Text(
                                 text = step.label, 
-                                style = MaterialTheme.typography.bodyLarge, 
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontWeight = if (step.status == StepStatus.IN_PROGRESS) FontWeight.Bold else FontWeight.Normal
+                                ),
                                 color = if (step.status == StepStatus.PENDING) 
                                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f) 
                                 else MaterialTheme.colorScheme.onSurface
@@ -117,8 +127,8 @@ fun InstagramAnalyzeScreen(
                 Spacer(modifier = Modifier.height(48.dp))
                 OutlinedButton(
                     onClick = onCancel, 
-                    modifier = Modifier.fillMaxWidth(0.6f).height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    modifier = Modifier.fillMaxWidth(0.7f).height(54.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) { 
                     Text("Cancel", fontWeight = FontWeight.Bold) 
                 }

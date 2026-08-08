@@ -78,6 +78,7 @@ fun DarkThemePreferences(onNavigateBack: () -> Unit) {
                 item {
                     PreferenceSwitchVariant(
                         title = stringResource(R.string.high_contrast),
+                        description = stringResource(R.string.high_contrast_desc),
                         icon = Icons.Outlined.Contrast,
                         isChecked = isHighContrastModeEnabled,
                         onClick = {

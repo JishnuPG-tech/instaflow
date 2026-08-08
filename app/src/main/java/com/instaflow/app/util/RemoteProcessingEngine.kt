@@ -94,6 +94,7 @@ object RemoteProcessingEngine {
         quality: Int? = null,
         formatId: String? = null,
         audioOnly: Boolean = false,
+        mergePhotoAudio: Boolean = false,
         videoInfo: Any? = null,
         progressCallback: ((Float, Long, String) -> Unit)?
     ): Result<List<String>> {
@@ -115,6 +116,9 @@ object RemoteProcessingEngine {
             }
             if (audioOnly) {
                 queryBuilder.append("&audio_only=true")
+            }
+            if (mergePhotoAudio) {
+                queryBuilder.append("&merge_photo_audio=true")
             }
             val queryStr = queryBuilder.toString()
 

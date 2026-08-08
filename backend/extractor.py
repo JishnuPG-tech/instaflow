@@ -150,12 +150,14 @@ def download_media_item(
     playlist_index: Optional[int] = None,
     item_entry: Optional[Dict[str, Any]] = None,
     quality: Optional[int] = None,
-    audio_only: bool = False
+    audio_only: bool = False,
+    merge_photo_audio: bool = False
 ) -> str:
     norm_url = InstagramUrlNormalizer.normalize(url)
-    
+    ffmpeg_path = find_ffmpeg_path()
+
     # Strategy 1: Photo / Direct CDN Image Download
-    if item_entry and not audio_only:
+    if item_entry and not audio_only and not merge_photo_audio:
         img_url = item_entry.get("thumbnail") or item_entry.get("url")
         if not img_url and item_entry.get("thumbnails"):
             img_url = item_entry["thumbnails"][-1].get("url")
@@ -183,6 +185,46 @@ def download_media_item(
             
             if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
                 return filepath
+
+    # Strategy 1.5: Photo + Music Merge (Single-Frame MP4)
+    if merge_photo_audio and item_entry and ffmpeg_path:
+        img_url = item_entry.get("thumbnail") or item_entry.get("url")
+        if not img_url and item_entry.get("thumbnails"):
+            img_url = item_entry["thumbnails"][-1].get("url")
+
+        if img_url:
+            logger.info(f"[Extractor] Merging photo and music into MP4...")
+            photo_path = os.path.join(DOWNLOADS_DIR, f"temp_photo_{item_entry.get('id')}.jpg")
+            audio_path = os.path.join(DOWNLOADS_DIR, f"temp_audio_{item_entry.get('id')}.m4a")
+            output_path = os.path.join(DOWNLOADS_DIR, f"InstaFlow_{item_entry.get('id')}_music.mp4")
+
+            try:
+                # 1. Download Photo
+                req = urllib.request.Request(img_url, headers={"User-Agent": "Mozilla/5.0", "Referer": "https://www.instagram.com/"})
+                with urllib.request.urlopen(req) as resp, open(photo_path, "wb") as f:
+                    f.write(resp.read())
+
+                # 2. Download Audio via yt-dlp
+                audio_cmd = [sys.executable, "-m", "yt_dlp", "-4", "-f", "bestaudio", "-o", audio_path]
+                if playlist_index: audio_cmd.extend(["--playlist-items", str(playlist_index)])
+                audio_cmd.extend(get_ig_headers())
+                audio_cmd.append(norm_url)
+                subprocess.run(audio_cmd, capture_output=True)
+
+                # 3. Merge via FFmpeg
+                # cmd: ffmpeg -loop 1 -i photo.jpg -i music.m4a -c:v libx264 -tune stillimage -c:a aac -b:a 192k -pix_fmt yuv420p -shortest output.mp4
+                merge_cmd = [
+                    ffmpeg_path, "-y", "-loop", "1", "-i", photo_path, "-i", audio_path,
+                    "-c:v", "libx264", "-tune", "stillimage", "-c:a", "aac", "-b:a", "192k",
+                    "-pix_fmt", "yuv420p", "-shortest", output_path
+                ]
+                subprocess.run(merge_cmd, capture_output=True)
+
+                if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                    return output_path
+            finally:
+                if os.path.exists(photo_path): os.remove(photo_path)
+                if os.path.exists(audio_path): os.remove(audio_path)
 
     # Strategy 2: Video Reel Download via yt-dlp + FFmpeg Audio Merge
     out_tmpl = os.path.join(DOWNLOADS_DIR, "InstaFlow_%(title).100s.%(ext)s")

@@ -22,12 +22,14 @@ class DownloadService:
         item_index: Optional[int] = None,
         item_entry: Optional[Dict[str, Any]] = None,
         requested_format: Optional[str] = None,
-        audio_only: bool = False
+        audio_only: bool = False,
+        mux_audio: bool = False
     ) -> str:
         norm_url = normalize_instagram_url(url)
-        
-        # Strategy 1: Direct Photo CDN Download
-        if item_entry and not audio_only:
+        is_photo_music = mux_audio or (requested_format and ("photo_music" in requested_format.lower() or "video_photo" in requested_format.lower()))
+
+        # Strategy 1: Direct Photo CDN Download (Only if audio muxing is NOT requested)
+        if item_entry and not audio_only and not is_photo_music:
             img_url = item_entry.get("thumbnail") or item_entry.get("url")
             if not img_url and item_entry.get("thumbnails"):
                 img_url = item_entry["thumbnails"][-1].get("url")
@@ -54,6 +56,54 @@ class DownloadService:
                     
                 ValidationService.validate_file(target_path, is_video=False)
                 return target_path
+
+        # Strategy 2: Single-Frame Photo + Music MP4 Muxing
+        if is_photo_music:
+            logger.info("Executing Single-Frame Photo + Music MP4 creation")
+            # 1. Download Photo
+            img_url = (item_entry or {}).get("thumbnail") or (item_entry or {}).get("url")
+            if not img_url and (item_entry or {}).get("thumbnails"):
+                img_url = item_entry["thumbnails"][-1].get("url")
+            
+            photo_path = os.path.join(task_dir, "source_photo.jpg")
+            if img_url:
+                req = urllib.request.Request(img_url, headers={
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                    "Referer": "https://www.instagram.com/"
+                })
+                with urllib.request.urlopen(req) as resp, open(photo_path, "wb") as f:
+                    f.write(resp.read())
+            
+            # 2. Download Audio Track via yt-dlp
+            audio_tmpl = os.path.join(task_dir, "source_audio.%(ext)s")
+            ydl_audio_opts: Dict[str, Any] = {
+                "outtmpl": audio_tmpl,
+                "quiet": True,
+                "no_warnings": True,
+                "format": "bestaudio/best",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "m4a",
+                    "preferredquality": "192",
+                }]
+            }
+            if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+                ydl_audio_opts["cookiefile"] = settings.COOKIES_FILE
+            
+            ffmpeg_bin = FFmpegService.get_ffmpeg_binary()
+            if ffmpeg_bin:
+                ydl_audio_opts["ffmpeg_location"] = ffmpeg_bin
+                
+            with yt_dlp.YoutubeDL(ydl_audio_opts) as ydl:
+                ydl.download([norm_url])
+
+            audio_path = os.path.join(task_dir, "source_audio.m4a")
+            output_mp4 = os.path.join(task_dir, f"InstaFlow_PhotoMusic_{(item_entry or {}).get('id', 'media')}.mp4")
+            
+            if os.path.exists(photo_path) and os.path.exists(audio_path):
+                FFmpegService.combine_photo_and_audio(photo_path, audio_path, output_mp4)
+                ValidationService.validate_file(output_mp4, is_video=True)
+                return output_mp4
 
         # Strategy 2: In-Memory Native yt-dlp Video / Audio Download
         out_tmpl = os.path.join(task_dir, "InstaFlow_%(title).100s.%(ext)s")

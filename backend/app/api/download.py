@@ -17,7 +17,8 @@ def download_get(
     url: str = Query(...),
     item: Optional[int] = Query(None),
     format: Optional[str] = Query(None),
-    audio_only: Optional[bool] = Query(False)
+    audio_only: Optional[bool] = Query(False),
+    mux_audio: Optional[bool] = Query(False)
 ):
     if not is_valid_instagram_url(url):
         raise HTTPException(
@@ -41,13 +42,15 @@ def download_get(
         import logging
         logging.getLogger("DownloadAPI").warning(f"Metadata pre-fetch failed ({meta_err}). Proceeding directly to download...")
 
+    try:
         filepath = DownloadService.download_item(
             url=url,
             task_dir=task_dir,
             item_index=item,
             item_entry=item_entry,
             requested_format=format,
-            audio_only=audio_only
+            audio_only=audio_only,
+            mux_audio=mux_audio
         )
         
         return StreamService.create_streaming_response(filepath)

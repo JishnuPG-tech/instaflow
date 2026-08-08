@@ -7,7 +7,8 @@ data class InstagramFormat(
     val height: Int = 0,
     val ext: String = "mp4",
     val fileSizeApprox: Long = 0L,
-    val isAudioOnly: Boolean = false
+    val isAudioOnly: Boolean = false,
+    val mergePhotoAudio: Boolean = false
 ) {
     val formattedSize: String
         get() {

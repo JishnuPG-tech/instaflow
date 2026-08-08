@@ -44,6 +44,7 @@ class DownloadRequest(BaseModel):
     playlist_index: Optional[int] = None
     quality: Optional[int] = None
     audio_only: bool = False
+    merge_photo_audio: bool = False
 
 @app.get("/")
 def read_root():
@@ -142,7 +143,8 @@ def download_get(
     url: str = Query(...),
     index: Optional[int] = Query(None),
     quality: Optional[int] = Query(None),
-    audio_only: bool = Query(False)
+    audio_only: bool = Query(False),
+    merge_photo_audio: bool = Query(False)
 ):
     try:
         meta = fetch_metadata(url)
@@ -154,7 +156,14 @@ def download_get(
         elif not entries:
             item_entry = meta
 
-        filepath = download_media_item(url, playlist_index=index, item_entry=item_entry, quality=quality, audio_only=audio_only)
+        filepath = download_media_item(
+            url,
+            playlist_index=index,
+            item_entry=item_entry,
+            quality=quality,
+            audio_only=audio_only,
+            merge_photo_audio=merge_photo_audio
+        )
         if not filepath or not os.path.exists(filepath):
             raise HTTPException(status_code=404, detail="File download failed or file not found")
         
@@ -171,7 +180,13 @@ def download_get(
 
 @app.post("/api/v1/download")
 def download_post(req: DownloadRequest):
-    return download_get(url=req.url, index=req.playlist_index, quality=req.quality, audio_only=req.audio_only)
+    return download_get(
+        url=req.url,
+        index=req.playlist_index,
+        quality=req.quality,
+        audio_only=req.audio_only,
+        merge_photo_audio=req.merge_photo_audio
+    )
 
 if __name__ == "__main__":
     import uvicorn

@@ -3,8 +3,13 @@ package com.instaflow.app.ui.page.downloadv2
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.animateTo
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.horizontalScroll
@@ -26,11 +31,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -372,7 +377,7 @@ fun DownloadPageImplV2(
         containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = { FABs(modifier = Modifier, downloadCallback = downloadCallback) },
     ) { windowInsetsPadding ->
-        val lazyListState = rememberLazyGridState()
+        val lazyListState = rememberLazyStaggeredGridState()
         val windowWidthSizeClass = LocalWindowWidthState.current
         val spacerHeight =
             with(LocalDensity.current) {
@@ -449,17 +454,18 @@ fun DownloadPageImplV2(
                     }
                 }
 
-                LazyVerticalGrid(
+                LazyVerticalStaggeredGrid(
                     modifier = Modifier,
                     state = lazyListState,
-                    columns = GridCells.Adaptive(240.dp),
+                    columns = StaggeredGridCells.Adaptive(180.dp),
                     contentPadding =
                         windowInsetsPadding +
-                            PaddingValues(start = 20.dp, end = 20.dp, bottom = 80.dp),
-                    horizontalArrangement = Arrangement.spacedBy(24.dp),
+                            PaddingValues(start = 16.dp, end = 16.dp, bottom = 80.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalItemSpacing = 16.dp,
                 ) {
                     if (filteredMap.isNotEmpty()) {
-                        item(span = { GridItemSpan(maxLineSpan) }) {
+                        item(span = StaggeredGridItemSpan.FullLine) {
                             val videoCount =
                                 filteredMap.count {
                                     !it.value.viewState.videoFormats.isNullOrEmpty()
@@ -479,24 +485,22 @@ fun DownloadPageImplV2(
                         items(
                             items =
                                 filteredMap.toList().sortedBy { (_, state) -> state.downloadState },
-                            key = { (task, _) -> task.id },
+                            key = { entry -> entry.first.id },
                         ) { (task, state) ->
-                            with(state.viewState) {
-                                VideoCardV2(
-                                    modifier = Modifier.padding(bottom = 20.dp).padding(),
-                                    viewState = state.viewState,
-                                    downloadState = state.downloadState,
-                                    onActionPost = { onActionPost(task, it) },
-                                    onButtonClick = { showActionSheet(task) },
-                                )
-                            }
+                            VideoCardV2(
+                                modifier = Modifier.fillMaxWidth(),
+                                viewState = state.viewState,
+                                downloadState = state.downloadState,
+                                onActionPost = { onActionPost(task, it) },
+                                onButtonClick = { showActionSheet(task) },
+                            )
                         }
                     } else {
                         items(
                             items =
                                 filteredMap.toList().sortedBy { (_, state) -> state.downloadState },
-                            key = { (task, _) -> task.id },
-                            span = { GridItemSpan(maxLineSpan) },
+                            key = { entry -> entry.first.id },
+                            span = { StaggeredGridItemSpan.FullLine },
                         ) { (task, state) ->
                             VideoListItem(
                                 modifier = Modifier.padding(bottom = 16.dp),
@@ -621,7 +625,15 @@ private fun HeaderExpanded(modifier: Modifier = Modifier, isAccountConnected: Bo
 fun FABs(modifier: Modifier = Modifier, downloadCallback: () -> Unit = {}) {
     val clipboardManager = LocalClipboardManager.current
     var hasIgLink by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
     
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = tween(durationMillis = 100),
+        label = "fab_scale"
+    )
+
     // Simple heuristic to check if we should show "Paste & Analyze"
     LaunchedEffect(Unit) {
         delay(500) // Small delay to avoid flickering on start
@@ -632,6 +644,7 @@ fun FABs(modifier: Modifier = Modifier, downloadCallback: () -> Unit = {}) {
     Column(modifier = modifier.padding(6.dp), horizontalAlignment = Alignment.End) {
         ExtendedFloatingActionButton(
             onClick = downloadCallback,
+            interactionSource = interactionSource,
             icon = {
                 Icon(
                     if (hasIgLink) Icons.Outlined.ContentPaste else Icons.Outlined.FileDownload,
@@ -645,7 +658,7 @@ fun FABs(modifier: Modifier = Modifier, downloadCallback: () -> Unit = {}) {
             },
             containerColor = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 12.dp).graphicsLayer(scaleX = scale, scaleY = scale),
         )
     }
 }

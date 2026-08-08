@@ -63,11 +63,14 @@ fun InstaFlowTheme(
                 copy(
                     surface = Color.Black,
                     background = Color.Black,
+                    surfaceVariant = Color.Black,
                     surfaceContainerLowest = Color.Black,
-                    surfaceContainerLow = surfaceContainerLowest,
-                    surfaceContainer = surfaceContainerLow,
-                    surfaceContainerHigh = surfaceContainerLow,
-                    surfaceContainerHighest = surfaceContainer,
+                    surfaceContainerLow = Color.Black,
+                    surfaceContainer = Color.Black,
+                    surfaceContainerHigh = Color.Black,
+                    surfaceContainerHighest = Color.Black,
+                    outline = Color.DarkGray,
+                    outlineVariant = Color.DarkGray
                 )
             else this
         }

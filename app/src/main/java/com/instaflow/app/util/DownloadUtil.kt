@@ -303,6 +303,7 @@ object DownloadUtil {
         val forceIpv4: Boolean,
         val mergeAudioStream: Boolean,
         val mergeToMkv: Boolean,
+        val mergePhotoAudio: Boolean,
     ) {
         companion object {
             val EMPTY =
@@ -356,6 +357,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv = false,
                     useCustomAudioPreset = false,
+                    mergePhotoAudio = false,
                 )
 
             fun createFromPreferences(): DownloadPreferences {
@@ -413,6 +415,7 @@ object DownloadUtil {
                     mergeAudioStream = false,
                     mergeToMkv =
                         (downloadSubtitle && embedSubtitle) || MERGE_OUTPUT_MKV.getBoolean(),
+                    mergePhotoAudio = false,
                 )
             }
         }
@@ -914,7 +917,7 @@ object DownloadUtil {
 
             // Check if InstaFlow v2 Remote Processing Engine server is active
             if (RemoteProcessingEngine.isServerAvailable()) {
-                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio)")
+                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio, merge: $mergePhotoAudio)")
                 val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
                 val remoteResult = RemoteProcessingEngine.downloadMedia(
                     context = context,
@@ -924,6 +927,7 @@ object DownloadUtil {
                     quality = videoResolution,
                     formatId = formatIdString,
                     audioOnly = extractAudio,
+                    mergePhotoAudio = mergePhotoAudio,
                     videoInfo = videoInfo,
                     progressCallback = progressCallback
                 )
