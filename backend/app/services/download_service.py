@@ -62,7 +62,7 @@ class DownloadService:
             cmd.extend(["--ffmpeg-location", os.path.dirname(ffmpeg_bin)])
             
         cmd.extend(["--merge-output-format", "mp4"])
-        cmd.extend(["-f", "bestvideo[vcodec^=avc1]+bestaudio/bestvideo+bestaudio/best"])
+        cmd.extend(["-f", "bestvideo[vcodec^=avc1]+bestaudio/bestvideo+bestaudio/best[ext=mp4]/best"])
         
         if item_index and item_index > 0:
             cmd.extend(["--playlist-items", str(item_index)])
@@ -84,22 +84,38 @@ class DownloadService:
                 cmd_fallback.extend(["--playlist-items", str(item_index)])
             else:
                 cmd_fallback.append("--no-playlist")
+            cmd_fallback.extend(["-f", "best[ext=mp4]/best"])
             cmd_fallback.extend(MetadataService.get_ig_headers())
             cmd_fallback.append(norm_url)
             res = subprocess.run(cmd_fallback, capture_output=True, text=True)
             if res.returncode != 0:
                 raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {res.stderr[:200]}")
 
-        files = [
-            os.path.join(task_dir, f) for f in os.listdir(task_dir)
-            if not f.endswith(".part") and not f.endswith(".ytdl") and not f.endswith(".tmp")
-        ]
-        files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+        # Scan task_dir for valid completed output files
+        # Exclude temporary stream fragments (e.g. .f140.m4a, .f137.mp4, .fdash-*, .part)
+        import re
+        all_entries = [f for f in os.listdir(task_dir) if not f.startswith(".")]
+        valid_files = []
+        for f in all_entries:
+            lname = f.lower()
+            if lname.endswith((".part", ".ytdl", ".tmp", ".temp", ".nomedia", ".json")):
+                continue
+            if re.search(r'\.f\d+\.', lname):
+                continue
+            valid_files.append(os.path.join(task_dir, f))
+
+        # Prioritize video files (.mp4, .mkv, .webm) over audio-only (.m4a, .mp3, .aac)
+        video_files = [f for f in valid_files if f.lower().endswith((".mp4", ".mkv", ".webm"))]
         
-        if not files:
+        if video_files:
+            video_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            target_file = video_files[0]
+        elif valid_files:
+            valid_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+            target_file = valid_files[0]
+        else:
             raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: No downloaded media file produced.")
             
-        target_file = files[0]
         is_video = target_file.lower().endswith((".mp4", ".mkv", ".webm"))
         ValidationService.validate_file(target_file, is_video=is_video)
         return target_file
