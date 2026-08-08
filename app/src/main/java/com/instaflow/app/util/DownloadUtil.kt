@@ -821,22 +821,34 @@ object DownloadUtil {
             var igUser: String? = null
             var cap: String? = null
 
+            val ext = videoPath.substringAfterLast('.', "").lowercase()
+            val isVideoFile = ext in listOf("mp4", "mkv", "webm", "mov", "3gp")
+            val isAudioFile = ext in listOf("mp3", "m4a", "opus", "aac", "flac")
+            val isImageFile = ext in listOf("jpg", "jpeg", "png", "webp")
+
             if (isInstagram) {
                 igUser = uploader ?: channel
                 cap = title
                 
-                val rawFormats = formats ?: emptyList()
                 val isStory = webpageUrl?.contains("/stories/") == true
                 val isReel = webpageUrl?.contains("/reel/") == true
                 val isProfile = extractorKey.lowercase().contains("profile")
-                val hasVideoCodec = rawFormats.any { it.vcodec != "none" && it.vcodec != null }
 
                 mType = when {
                     isProfile -> "PROFILE_PIC"
                     isReel -> "REEL"
-                    isStory -> if (hasVideoCodec) "STORY" else "IMAGE"
-                    hasVideoCodec -> "VIDEO"
-                    else -> "IMAGE"
+                    isStory -> if (isVideoFile) "STORY" else "IMAGE"
+                    isVideoFile -> "VIDEO"
+                    isAudioFile -> "AUDIO"
+                    isImageFile -> "IMAGE"
+                    else -> "VIDEO"
+                }
+            } else {
+                mType = when {
+                    isVideoFile -> "VIDEO"
+                    isAudioFile -> "AUDIO"
+                    isImageFile -> "IMAGE"
+                    else -> "VIDEO"
                 }
             }
 

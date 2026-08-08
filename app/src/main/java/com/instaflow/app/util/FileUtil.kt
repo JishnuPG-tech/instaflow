@@ -63,18 +63,22 @@ object FileUtil {
     }
 
     fun createIntentForOpeningFile(path: String?): Intent? =
-        createIntentForFile(path)?.let {
-            it.apply {
-                action = (Intent.ACTION_VIEW)
+        createIntentForFile(path)?.let { intent ->
+            val targetUri = intent.data ?: return null
+            val extension = path?.substringAfterLast('.', "")?.lowercase() ?: ""
+            val mimeType = when (extension) {
+                "jpg", "jpeg", "png", "webp" -> "image/*"
+                "mp4", "mkv", "webm", "mov", "3gp" -> "video/*"
+                "mp3", "m4a", "opus", "aac", "flac" -> "audio/*"
+                else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
+            }
+            intent.apply {
+                action = Intent.ACTION_VIEW
+                setDataAndType(targetUri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                val extension = path?.substringAfterLast('.', "")?.lowercase() ?: ""
-                val mimeType = when (extension) {
-                    "jpg", "jpeg", "png", "webp" -> "image/*"
-                    "mp4", "mkv", "webm", "mov" -> "video/*"
-                    "mp3", "m4a", "opus", "aac" -> "audio/*"
-                    else -> MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
-                }
-                setDataAndType(data, mimeType)
+                clipData = ClipData(null, arrayOf(mimeType), ClipData.Item(targetUri))
             }
         }
 

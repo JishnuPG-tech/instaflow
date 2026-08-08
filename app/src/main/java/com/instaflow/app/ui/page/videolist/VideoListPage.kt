@@ -93,6 +93,7 @@ import com.instaflow.app.ui.component.BackButton
 import com.instaflow.app.ui.component.CheckBoxItem
 import com.instaflow.app.ui.component.ConfirmButton
 import com.instaflow.app.ui.component.DismissButton
+import com.instaflow.app.ui.component.InternalImageViewerDialog
 import com.instaflow.app.ui.component.MediaListItem
 import com.instaflow.app.ui.component.InstaFlowDialog
 import com.instaflow.app.ui.component.InstaFlowSearchBar
@@ -265,6 +266,8 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
 
     var showRemoveDialog by remember { mutableStateOf(false) }
     var showBottomSheet by remember { mutableStateOf(false) }
+    var activeImageViewerPath by remember { mutableStateOf<String?>(null) }
+    var activeImageViewerTitle by remember { mutableStateOf("") }
 
     BackHandler(isSelectEnabled || viewState.isSearching) {
         if (isSelectEnabled) {
@@ -488,10 +491,17 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
                                     else selectedItemIds.add(id)
                                 },
                                 onClick = {
-                                    FileUtil.openFile(path = videoPath) {
-                                        ToastUtil.makeToastSuspend(
-                                            App.context.getString(R.string.file_unavailable)
-                                        )
+                                    val ext = videoPath.substringAfterLast('.', "").lowercase()
+                                    val isImage = ext in listOf("jpg", "jpeg", "png", "webp") || mediaType == "IMAGE" || mediaType == "PROFILE_PIC"
+                                    if (isImage && videoPath.isNotBlank()) {
+                                        activeImageViewerPath = videoPath
+                                        activeImageViewerTitle = videoTitle
+                                    } else {
+                                        FileUtil.openFile(path = videoPath) {
+                                            ToastUtil.makeToastSuspend(
+                                                App.context.getString(R.string.file_unavailable)
+                                            )
+                                        }
                                     }
                                 },
                                 onLongClick = {
@@ -653,6 +663,14 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
             view.slightHapticFeedback()
             showImportDialog = false
         }
+    }
+
+    activeImageViewerPath?.let { path ->
+        InternalImageViewerDialog(
+            imagePath = path,
+            title = activeImageViewerTitle,
+            onDismissRequest = { activeImageViewerPath = null }
+        )
     }
 }
 
