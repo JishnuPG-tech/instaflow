@@ -201,49 +201,58 @@ class DownloadService:
         else:
             ydl_opts["noplaylist"] = True
 
+        download_succeeded = False
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([norm_url])
+            download_succeeded = True
         except Exception as err:
             err_str = str(err)
             logger.warning(f"Primary yt-dlp download failed: {err_str[:200]}. Checking fallback options...")
-            
-            # Check Photo Embed Fallback first if this is a non-video photo post
-            if "no video" in err_str.lower() or "404" in err_str.lower() or "not found" in err_str.lower() or "/p/" in norm_url:
-                try:
-                    logger.info("Executing Direct Photo Embed Download for non-video post...")
-                    photo_meta = MetadataService.extract_photo_fallback(norm_url)
-                    img_url = photo_meta.get("url") or photo_meta.get("thumbnail")
-                    if img_url:
-                        ext = "jpg"
-                        if ".webp" in img_url.lower(): ext = "webp"
-                        elif ".png" in img_url.lower(): ext = "png"
-                        
-                        fname = f"InstaFlow_Photo_{photo_meta.get('id', 'media')}.{ext}"
-                        target_path = os.path.join(task_dir, fname)
-                        
-                        req = urllib.request.Request(img_url, headers={
-                            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                            "Referer": "https://www.instagram.com/"
-                        })
-                        with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
-                            f.write(resp.read())
-                            
-                        ValidationService.validate_file(target_path, is_video=False)
-                        return target_path
-                except Exception as photo_err:
-                    logger.error(f"Direct Photo Embed Download failed: {photo_err}")
 
+            # Fallback 1: If cookies were used, try Anonymous Mode (without cookies) first!
             if "cookiefile" in ydl_opts:
                 fb_opts = dict(ydl_opts)
                 del fb_opts["cookiefile"]
                 try:
+                    logger.info("Executing Anonymous Mode fallback video download (no cookiefile)...")
                     with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
                         ydl_fb.download([norm_url])
+                    download_succeeded = True
                 except Exception as fb_err:
-                    logger.error(f"Anonymous fallback download failed: {fb_err}")
-                    raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
-            else:
+                    logger.warning(f"Anonymous fallback video download failed: {str(fb_err)[:200]}")
+                    err_str = str(fb_err)
+
+            # Fallback 2: Check Photo Embed Fallback ONLY IF video download completely failed AND post has no video or is a /p/ static photo post!
+            if not download_succeeded:
+                is_photo_post = "/p/" in norm_url and not any(k in norm_url.lower() for k in ["reel", "tv"])
+                is_no_video_err = "no video" in err_str.lower() or "there is no video" in err_str.lower()
+                
+                if is_photo_post or is_no_video_err:
+                    try:
+                        logger.info("Executing Direct Photo Embed Download for photo post...")
+                        photo_meta = MetadataService.extract_photo_fallback(norm_url)
+                        img_url = photo_meta.get("url") or photo_meta.get("thumbnail")
+                        if img_url:
+                            ext = "jpg"
+                            if ".webp" in img_url.lower(): ext = "webp"
+                            elif ".png" in img_url.lower(): ext = "png"
+                            
+                            fname = f"InstaFlow_Photo_{photo_meta.get('id', 'media')}.{ext}"
+                            target_path = os.path.join(task_dir, fname)
+                            
+                            req = urllib.request.Request(img_url, headers={
+                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+                                "Referer": "https://www.instagram.com/"
+                            })
+                            with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
+                                f.write(resp.read())
+                                
+                            ValidationService.validate_file(target_path, is_video=False)
+                            return target_path
+                    except Exception as photo_err:
+                        logger.error(f"Direct Photo Embed Download failed: {photo_err}")
+
                 raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
 
         # Scan task_dir for valid completed output files
