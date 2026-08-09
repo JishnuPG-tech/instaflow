@@ -14,6 +14,13 @@ from backend.app.utils.temp import TempUtil
 router = APIRouter()
 logger = logging.getLogger("PostRouter")
 
+def _to_dict(obj):
+    if hasattr(obj, "dict"):
+        return obj.dict()
+    if hasattr(obj, "model_dump"):
+        return obj.model_dump()
+    return obj
+
 @router.post("/post/analyze")
 async def analyze_post(req: AnalyzeRequest):
     try:
@@ -22,12 +29,12 @@ async def analyze_post(req: AnalyzeRequest):
         result = ClassifierService.classify_url(req.url, meta)
         return {
             "success": True,
-            "type": result.contentType.value,
+            "type": result.contentType.value if hasattr(result.contentType, "value") else str(result.contentType),
             "author": result.author,
             "title": result.title,
             "thumbnail": result.thumbnail,
-            "items": [it.model_dump() for it in result.mediaItems],
-            "media_result": result.model_dump(),
+            "items": [_to_dict(it) for it in result.mediaItems],
+            "media_result": _to_dict(result),
             "raw_metadata": meta
         }
     except Exception as e:

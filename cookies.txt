@@ -6,9 +6,9 @@
 .instagram.com	TRUE	/	TRUE	2147483647	mid	acPwPwALAAGMuSpuPxHFE00DS2rx
 .instagram.com	TRUE	/	TRUE	2147483647	ps_l	1
 .instagram.com	TRUE	/	TRUE	2147483647	ps_n	1
-.instagram.com	TRUE	/	TRUE	1820841259	csrftoken	nVO2rgY3me7iDzhUqCXvCyKlWFlE0Ayz
-.instagram.com	TRUE	/	TRUE	1794057259	ds_user_id	36496086985
+.instagram.com	TRUE	/	TRUE	1820843236	csrftoken	nVO2rgY3me7iDzhUqCXvCyKlWFlE0Ayz
+.instagram.com	TRUE	/	TRUE	1794059236	ds_user_id	36496086985
 .instagram.com	TRUE	/	TRUE	2147483647	dpr	1.5
 .instagram.com	TRUE	/	TRUE	2147483647	sessionid	36496086985%3ArLtjmPdKBMWDP5%3A8%3AAYjDKzrswVpJe59w1Hymd-mAyHjKpWuwGHuGShU-hA
 .instagram.com	TRUE	/	TRUE	2147483647	wd	728x591
-.instagram.com	TRUE	/	TRUE	0	rur	"HIL\05436496086985\0541817817260:01ffd4aa95e40fe1a8812911ed43a917463016f85cf2c8896d9b086faaa8e3fea0bd9150"
+.instagram.com	TRUE	/	TRUE	0	rur	"HIL\05436496086985\0541817819236:01ffa1cd96fe0cb75939bd6e93d9022e48f9447e79a2604b929035f183a103cbdec521d7"
