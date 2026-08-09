@@ -19,14 +19,16 @@ async def analyze_post(req: AnalyzeRequest):
     try:
         logger.info(f"PostRouter: Analyzing post metadata for {req.url}")
         meta = MetadataService.fetch_metadata(req.url)
-        classified = ClassifierService.classify(meta)
+        result = ClassifierService.classify_url(req.url, meta)
         return {
             "success": True,
-            "type": classified.primary_type.value,
-            "author": classified.author,
-            "title": classified.title,
-            "thumbnail": classified.thumbnail,
-            "items": [it.model_dump() for it in classified.items]
+            "type": result.contentType.value,
+            "author": result.author,
+            "title": result.title,
+            "thumbnail": result.thumbnail,
+            "items": [it.model_dump() for it in result.mediaItems],
+            "media_result": result.model_dump(),
+            "raw_metadata": meta
         }
     except Exception as e:
         logger.error(f"Post analysis error: {e}")

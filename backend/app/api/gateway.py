@@ -1,11 +1,12 @@
 import os
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, BackgroundTasks, Query, Request
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
 from backend.app.models.request import AnalyzeRequest, DownloadRequest
 from backend.app.models.response import ErrorCode
 from backend.app.models.media import DownloadIntent
 from backend.app.services.metadata_service import MetadataService
+from backend.app.services.classifier_service import ClassifierService
 from backend.app.services.download_service import DownloadService
 from backend.app.services.video_service import VideoService
 from backend.app.services.audio_service import AudioService
@@ -22,13 +23,15 @@ async def analyze_gateway(req: AnalyzeRequest):
     try:
         logger.info(f"GatewayRouter: Analyzing URL {req.url} (intent: {req.download_type})")
         meta = MetadataService.fetch_metadata(req.url)
+        result = ClassifierService.classify_url(req.url, meta)
         return {
             "success": True,
-            "type": meta.get("type", "video"),
-            "author": meta.get("uploader", "Instagram User"),
-            "title": meta.get("title", ""),
-            "thumbnail": meta.get("thumbnail"),
-            "items": meta.get("items", []),
+            "type": result.contentType.value,
+            "author": result.author,
+            "title": result.title,
+            "thumbnail": result.thumbnail,
+            "items": [it.model_dump() for it in result.mediaItems],
+            "media_result": result.model_dump(),
             "raw_metadata": meta
         }
     except Exception as e:
