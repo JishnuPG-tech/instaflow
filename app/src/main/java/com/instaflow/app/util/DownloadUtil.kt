@@ -304,6 +304,7 @@ object DownloadUtil {
         val mergeAudioStream: Boolean,
         val mergeToMkv: Boolean,
         val mergePhotoAudio: Boolean,
+        val downloadType: com.instaflow.app.model.DownloadType? = null,
     ) {
         companion object {
             val EMPTY =
@@ -914,7 +915,7 @@ object DownloadUtil {
             }
             // Check if InstaFlow v2 Remote Processing Engine server is active or if Instagram URL
             if (url.contains("instagram.com") || RemoteProcessingEngine.isServerAvailable()) {
-                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio, merge: $mergePhotoAudio)")
+                Log.i(TAG, "[Pipeline] Remote Processing Engine active! Offloading download to server: $url (res: $videoResolution, format: '$formatIdString', audioOnly: $extractAudio, merge: $mergePhotoAudio, type: ${downloadPreferences.downloadType})")
                 val downloadDir = File(if (privateDirectory) App.privateDownloadDir else videoDownloadDir)
                 val remoteResult = RemoteProcessingEngine.downloadMedia(
                     context = context,
@@ -925,6 +926,7 @@ object DownloadUtil {
                     formatId = formatIdString,
                     audioOnly = extractAudio,
                     mergePhotoAudio = mergePhotoAudio,
+                    downloadType = downloadPreferences.downloadType,
                     videoInfo = videoInfo,
                     progressCallback = progressCallback
                 )

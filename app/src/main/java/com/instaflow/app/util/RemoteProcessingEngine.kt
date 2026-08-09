@@ -3,6 +3,7 @@ package com.instaflow.app.util
 import android.content.Context
 import android.media.MediaScannerConnection
 import android.util.Log
+import com.instaflow.app.model.DownloadType
 import com.instaflow.app.util.PlaylistResult
 import com.instaflow.app.util.VideoInfo
 import com.instaflow.app.util.YoutubeDLInfo
@@ -18,7 +19,7 @@ import kotlinx.serialization.json.JsonObject
 object RemoteProcessingEngine {
     private const val TAG = "RemoteEngine"
     
-    // Live Hugging Face Space Base URL with fallback to local emulator/server
+    // Live Hugging Face Space Base URL
     var serverBaseUrl: String = "https://jishnupg-opencode-cli.hf.space/instaflow"
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -48,11 +49,17 @@ object RemoteProcessingEngine {
         return false
     }
 
-    fun analyzeUrl(urlStr: String): Result<YoutubeDLInfo> {
+    fun analyzeUrl(urlStr: String, downloadType: DownloadType? = null): Result<YoutubeDLInfo> {
         var connection: HttpURLConnection? = null
         return try {
-            val endpoint = "$serverBaseUrl/api/v1/analyze"
-            Log.i(TAG, "[RemoteEngine] Analyzing URL via server: $urlStr")
+            val endpointPath = when (downloadType) {
+                DownloadType.AUDIO -> "/api/v1/audio/analyze"
+                DownloadType.VIDEO -> "/api/v1/video/analyze"
+                DownloadType.POST -> "/api/v1/post/analyze"
+                else -> "/api/v1/analyze"
+            }
+            val endpoint = "$serverBaseUrl$endpointPath"
+            Log.i(TAG, "[RemoteEngine] Analyzing URL via server endpoint ($endpointPath): $urlStr")
             
             val url = URL(endpoint)
             connection = (url.openConnection() as HttpURLConnection).apply {
@@ -60,11 +67,12 @@ object RemoteProcessingEngine {
                 readTimeout = 45000
                 requestMethod = "POST"
                 setRequestProperty("Content-Type", "application/json")
-                setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.0.0")
+                setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.1.0")
                 doOutput = true
             }
 
-            val jsonReq = "{\"url\": \"$urlStr\"}"
+            val typeStr = downloadType?.name ?: "POST"
+            val jsonReq = "{\"url\": \"$urlStr\", \"download_type\": \"$typeStr\"}"
             connection.outputStream.use { it.write(jsonReq.toByteArray()) }
 
             val responseCode = connection.responseCode
@@ -76,9 +84,10 @@ object RemoteProcessingEngine {
             val responseBody = connection.inputStream.bufferedReader().use { it.readText() }
             val root = json.parseToJsonElement(responseBody) as JsonObject
             
-            val rawMetadata = root["raw_metadata"]?.toString() ?: throw Exception("Missing raw_metadata in server response")
+            val rawMetadata = root["raw_metadata"]?.toString() 
+                ?: root["data"]?.toString() 
+                ?: responseBody
             
-            // The server returns the full yt-dlp metadata in 'raw_metadata'
             try {
                 val playlist = json.decodeFromString<PlaylistResult>(rawMetadata)
                 if (playlist.type == "playlist") {
@@ -104,6 +113,7 @@ object RemoteProcessingEngine {
         formatId: String? = null,
         audioOnly: Boolean = false,
         mergePhotoAudio: Boolean = false,
+        downloadType: DownloadType? = null,
         videoInfo: Any? = null,
         progressCallback: ((Float, Long, String) -> Unit)?
     ): Result<List<String>> {
@@ -112,8 +122,15 @@ object RemoteProcessingEngine {
         var outputStream: FileOutputStream? = null
 
         return try {
+            val endpointPath = when {
+                downloadType == DownloadType.AUDIO || audioOnly -> "/api/v1/audio/download"
+                downloadType == DownloadType.VIDEO -> "/api/v1/video/download"
+                downloadType == DownloadType.POST -> "/api/v1/post/download"
+                else -> "/api/v1/download"
+            }
+
             val encodedUrl = URLEncoder.encode(urlStr, "UTF-8")
-            val queryBuilder = StringBuilder("$serverBaseUrl/api/v1/download?url=$encodedUrl")
+            val queryBuilder = StringBuilder("$serverBaseUrl$endpointPath?url=$encodedUrl")
             if (itemIndex > 0) {
                 queryBuilder.append("&item=$itemIndex")
             }
@@ -123,21 +140,24 @@ object RemoteProcessingEngine {
             if (!formatId.isNullOrEmpty()) {
                 queryBuilder.append("&format=${URLEncoder.encode(formatId, "UTF-8")}")
             }
-            if (audioOnly) {
+            if (audioOnly || downloadType == DownloadType.AUDIO) {
                 queryBuilder.append("&audio_only=true")
             }
             if (mergePhotoAudio) {
                 queryBuilder.append("&merge_photo_audio=true")
             }
+            if (downloadType != null) {
+                queryBuilder.append("&download_type=${downloadType.name}")
+            }
             val queryStr = queryBuilder.toString()
 
-            Log.i(TAG, "[RemoteEngine] Connecting to processing server: $queryStr")
+            Log.i(TAG, "[RemoteEngine] Connecting to server router: $queryStr")
             val url = URL(queryStr)
             connection = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 15000
                 readTimeout = 60000
                 requestMethod = "GET"
-                setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.0.0")
+                setRequestProperty("User-Agent", "InstaFlow-AndroidClient/2.1.0")
             }
 
             val responseCode = connection.responseCode
@@ -154,7 +174,11 @@ object RemoteProcessingEngine {
                 if (extracted.isNotBlank()) fileName = extracted
             } else {
                 val mediaType = connection.contentType ?: ""
-                val ext = if (mediaType.contains("image")) ".jpg" else ".mp4"
+                val ext = when {
+                    mediaType.contains("image") -> ".jpg"
+                    mediaType.contains("audio") || mediaType.contains("m4a") -> ".m4a"
+                    else -> ".mp4"
+                }
                 fileName += ext
             }
 

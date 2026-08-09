@@ -137,12 +137,7 @@ const val NOT_CONVERT = NOT_SPECIFIED
 const val NONE = NOT_SPECIFIED
 const val USE_PREVIOUS_SELECTION = 1
 
-enum class DownloadType {
-    Audio,
-    Video,
-    Post,
-    Command,
-}
+typealias DownloadType = com.instaflow.app.model.DownloadType
 
 const val CONVERT_ASS = 1
 const val CONVERT_LRC = 2
