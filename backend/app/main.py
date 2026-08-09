@@ -10,6 +10,18 @@ def _ipv4_getaddrinfo(*args, **kwargs):
 socket.getaddrinfo = _ipv4_getaddrinfo
 urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
 
+import sys
+from pathlib import Path
+
+# Ensure project root is in sys.path so 'backend' module is always found
+_file_path = Path(__file__).resolve()
+_root_dir = str(_file_path.parent.parent.parent)
+_app_dir = str(_file_path.parent.parent)
+if _root_dir not in sys.path:
+    sys.path.insert(0, _root_dir)
+if _app_dir not in sys.path:
+    sys.path.insert(0, _app_dir)
+
 import uuid
 import logging
 from fastapi import FastAPI, Request
