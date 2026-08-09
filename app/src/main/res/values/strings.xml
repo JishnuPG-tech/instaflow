@@ -338,7 +338,6 @@
     <string name="download_type">Media type</string>
     <string name="custom">Custom</string>
     <string name="auto">Auto</string>
-    <string name="commands">Advanced</string>
     <string name="format_preference">Format preference</string>
     <string name="learn_more">Learn more</string>
     <string name="unknown">Unknown</string>
