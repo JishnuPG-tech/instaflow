@@ -140,6 +140,7 @@ const val USE_PREVIOUS_SELECTION = 1
 enum class DownloadType {
     Audio,
     Video,
+    Post,
     Command,
 }
 

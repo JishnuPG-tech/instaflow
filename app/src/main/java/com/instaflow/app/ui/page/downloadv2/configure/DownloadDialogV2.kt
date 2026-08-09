@@ -140,6 +140,7 @@ import com.instaflow.app.util.DatabaseUtil
 import com.instaflow.app.util.DownloadType
 import com.instaflow.app.util.DownloadType.Audio
 import com.instaflow.app.util.DownloadType.Command
+import com.instaflow.app.util.DownloadType.Post
 import com.instaflow.app.util.DownloadType.Video
 import com.instaflow.app.util.DownloadType.entries
 import com.instaflow.app.util.DownloadUtil
@@ -165,6 +166,7 @@ private fun DownloadType.label(): String =
         when (this) {
             Audio -> R.string.audio
             Video -> R.string.video
+            Post -> R.string.posts
             Command -> R.string.commands
         }
     )

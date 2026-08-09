@@ -33,6 +33,8 @@
     <string name="dismiss">Cancel</string>
     <string name="downloads_history">Downloads</string>
     <string name="audio">Audio</string>
+    <string name="posts">Posts</string>
+    <string name="commands">Commands</string>
     <string name="link_copied">Link copied to clipboard</string>
     <string name="open_url">Open link</string>
     <string name="remove">Remove</string>
