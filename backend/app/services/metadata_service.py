@@ -69,7 +69,7 @@ class MetadataService:
 
         embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
         try:
-            resp = session.get(embed_url, timeout=6.0)
+            resp = session.get(embed_url, timeout=8.0)
             if resp.status_code == 200:
                 resp_text = resp.text
                 
@@ -97,6 +97,17 @@ class MetadataService:
                         caption = cap_text
         except Exception as embed_err:
             logger.warning(f"Embed page extraction error: {embed_err}")
+
+        # Fallback to direct media redirect endpoint if no images or video url extracted
+        if not clean_images and not clean_video_url:
+            try:
+                media_endpoint = f"https://www.instagram.com/p/{shortcode}/media/?size=l"
+                logger.info(f"Fetching direct media endpoint redirect: {media_endpoint}")
+                media_resp = session.get(media_endpoint, allow_redirects=True, timeout=8.0)
+                if media_resp.status_code == 200 and media_resp.url:
+                    clean_images.append(media_resp.url)
+            except Exception as media_err:
+                logger.warning(f"Media endpoint redirect error: {media_err}")
 
         primary_thumb = clean_images[0] if clean_images else f"https://www.instagram.com/p/{shortcode}/media/?size=l"
         

@@ -1,4 +1,5 @@
 import socket
+import urllib3.util.connection as urllib3_cn
 
 # Force IPv4 socket resolution globally to eliminate IPv6 datacenter socket hangs on Hugging Face Space
 _old_getaddrinfo = socket.getaddrinfo
@@ -7,6 +8,7 @@ def _ipv4_getaddrinfo(*args, **kwargs):
     ipv4 = [r for r in res if r[0] == socket.AF_INET]
     return ipv4 if ipv4 else res
 socket.getaddrinfo = _ipv4_getaddrinfo
+urllib3_cn.allowed_gai_family = lambda: socket.AF_INET
 
 import uuid
 import logging

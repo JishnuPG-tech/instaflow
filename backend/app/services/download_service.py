@@ -239,12 +239,18 @@ class DownloadService:
                         fname = f"InstaFlow_{prefix}_{embed_meta.get('id', 'media')}.{ext}"
                         target_path = os.path.join(task_dir, fname)
                         
-                        req = urllib.request.Request(media_url, headers={
+                        import requests
+                        dl_session = requests.Session()
+                        dl_headers = {
                             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
                             "Referer": "https://www.instagram.com/"
-                        })
-                        with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
-                            f.write(resp.read())
+                        }
+                        dl_resp = dl_session.get(media_url, headers=dl_headers, allow_redirects=True, stream=True, timeout=15.0)
+                        dl_resp.raise_for_status()
+                        with open(target_path, "wb") as f:
+                            for chunk in dl_resp.iter_content(chunk_size=65536):
+                                if chunk:
+                                    f.write(chunk)
                             
                         ValidationService.validate_file(target_path, is_video=is_vid)
                         return target_path
