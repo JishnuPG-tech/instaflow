@@ -48,7 +48,7 @@ class MetadataService:
         import html
         import requests
         
-        logger.info(f"Executing Photo Embed Fallback Extraction for {url}")
+        logger.info(f"Executing Photo Fallback Extraction for {url}")
         
         shortcode = "photo"
         if "/p/" in url:
@@ -56,19 +56,38 @@ class MetadataService:
         elif "/reel/" in url:
             shortcode = url.split("/reel/")[1].split("/")[0]
             
-        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
-        headers = {
+        session = requests.Session()
+        session.headers.update({
             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-            "Referer": "https://www.instagram.com/"
-        }
+            "Referer": "https://www.instagram.com/",
+            "X-IG-App-ID": "936619743392459",
+        })
         
-        resp = requests.get(embed_url, headers=headers, timeout=5)
+        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            try:
+                with open(settings.COOKIES_FILE, "r") as f:
+                    for line in f:
+                        if not line.startswith("#") and line.strip():
+                            parts = line.strip().split("\t")
+                            if len(parts) >= 7:
+                                session.cookies.set(parts[5], parts[6], domain=parts[0])
+            except Exception as ce:
+                logger.warning(f"Error loading cookies in photo fallback: {ce}")
+                
+        # Attempt 1: Embed captioned page
+        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
+        resp = session.get(embed_url, timeout=6)
         
-        images = re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', resp.text)
+        images = re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', resp.text) or re.findall(r'property="og:image" content="([^"]+)"', resp.text) or re.findall(r'"display_url":"([^"]+)"', resp.text)
+        
+        # Attempt 2: Direct post page if embed page had no images
         if not images:
-            images = re.findall(r'property="og:image" content="([^"]+)"', resp.text)
-        if not images:
-            images = re.findall(r'"display_url":"([^"]+)"', resp.text)
+            logger.info("Embed page yielded no images, attempting direct post page...")
+            web_url = f"https://www.instagram.com/p/{shortcode}/"
+            resp_web = session.get(web_url, timeout=6)
+            images = re.findall(r'property="og:image" content="([^"]+)"', resp_web.text) or re.findall(r'"display_url":"([^"]+)"', resp_web.text)
+            if not resp.text or len(resp.text) < 1000:
+                resp = resp_web
             
         clean_images = []
         for img in images:
