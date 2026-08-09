@@ -29,6 +29,9 @@ class MetadataService:
             "extract_flat": extract_flat,
             "cachedir": False,
             "force_ipv4": True,
+            "socket_timeout": 8,
+            "retries": 3,
+            "fragment_retries": 3,
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
                 "Referer": "https://www.instagram.com/",
@@ -51,6 +54,9 @@ class MetadataService:
             "skip_download": True,
             "cachedir": False,
             "force_ipv4": True,
+            "socket_timeout": 8,
+            "retries": 3,
+            "fragment_retries": 3,
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
                 "Referer": "https://www.instagram.com/",
