@@ -133,7 +133,7 @@ class DownloadService:
             else:
                 fmt_str = f"b[ext=mp4]/best[ext=mp4]/{requested_format}/best"
 
-        # Step 1: Anonymous Mode FIRST (No cookies sent - prevents bot warnings & account flags)
+        # Base yt-dlp download options
         ydl_opts: Dict[str, Any] = {
             "outtmpl": out_tmpl,
             "quiet": True,
@@ -152,8 +152,12 @@ class DownloadService:
         if ffmpeg_bin:
             ydl_opts["ffmpeg_location"] = ffmpeg_bin
 
+        has_cookies = os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0
+        if has_cookies:
+            ydl_opts["cookiefile"] = settings.COOKIES_FILE
+
         if is_audio:
-            logger.info("Executing Audio-Only Extraction via native yt-dlp (Anonymous Mode)")
+            logger.info("Executing Audio-Only Extraction via native yt-dlp")
             ydl_opts.update({
                 "format": "bestaudio/best",
                 "postprocessors": [{
@@ -163,7 +167,7 @@ class DownloadService:
                 }]
             })
         else:
-            logger.info(f"Executing Full Video Download via native yt-dlp (Anonymous Mode, format: {fmt_str})")
+            logger.info(f"Executing Full Video Download via native yt-dlp (format: {fmt_str})")
             ydl_opts.update({
                 "format": fmt_str,
                 "merge_output_format": "mp4"
@@ -179,16 +183,16 @@ class DownloadService:
                 ydl.download([norm_url])
         except Exception as err:
             err_str = str(err)
-            logger.warning(f"Primary anonymous yt-dlp download failed: {err_str[:200]}. Trying Cookie Mode fallback...")
+            logger.warning(f"Primary yt-dlp download failed: {err_str[:200]}. Trying Anonymous Mode fallback...")
             
-            if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+            if "cookiefile" in ydl_opts:
                 fb_opts = dict(ydl_opts)
-                fb_opts["cookiefile"] = settings.COOKIES_FILE
+                del fb_opts["cookiefile"]
                 try:
                     with yt_dlp.YoutubeDL(fb_opts) as ydl_fb:
                         ydl_fb.download([norm_url])
                 except Exception as fb_err:
-                    logger.error(f"yt-dlp cookie fallback download failed: {fb_err}")
+                    logger.error(f"Anonymous fallback download failed: {fb_err}")
                     raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
             else:
                 raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")

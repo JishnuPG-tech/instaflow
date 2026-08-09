@@ -47,7 +47,21 @@ class MetadataService:
         norm_url = normalize_instagram_url(url)
         logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
         
-        # Step 1: Anonymous Mode FIRST (No cookies - prevents bot warnings & account flags)
+        has_cookies = os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0
+        
+        # Step 1: Cookie Mode FIRST if cookies available (Fastest & most reliable on server IPs)
+        if has_cookies:
+            cookie_opts = cls.get_ydl_opts()
+            try:
+                with yt_dlp.YoutubeDL(cookie_opts) as ydl_cookie:
+                    info_cookie = ydl_cookie.extract_info(norm_url, download=False)
+                    if info_cookie:
+                        logger.info("Cookie Mode metadata extraction succeeded!")
+                        return ydl_cookie.sanitize_info(info_cookie)
+            except Exception as cookie_err:
+                logger.warning(f"Cookie Mode metadata extraction failed: {str(cookie_err)[:150]}. Trying Anonymous Mode fallback...")
+
+        # Step 2: Anonymous Mode fallback (Or primary if no cookies file)
         anon_opts: Dict[str, Any] = {
             "quiet": True,
             "no_warnings": True,
@@ -71,19 +85,7 @@ class MetadataService:
                     logger.info("Anonymous Mode metadata extraction succeeded!")
                     return ydl_anon.sanitize_info(info_anon)
         except Exception as anon_err:
-            logger.warning(f"Anonymous Mode metadata extraction failed: {str(anon_err)[:150]}. Checking Cookie Mode fallback...")
-
-        # Step 2: Cookie Mode fallback (Only if anonymous mode failed and cookies file exists)
-        if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
-            cookie_opts = cls.get_ydl_opts()
-            try:
-                with yt_dlp.YoutubeDL(cookie_opts) as ydl_cookie:
-                    info_cookie = ydl_cookie.extract_info(norm_url, download=False)
-                    if info_cookie:
-                        logger.info("Cookie Mode metadata extraction succeeded!")
-                        return ydl_cookie.sanitize_info(info_cookie)
-            except Exception as cookie_err:
-                logger.error(f"Cookie Mode metadata extraction failed: {str(cookie_err)[:150]}")
+            logger.error(f"Anonymous Mode metadata extraction failed: {str(anon_err)[:150]}")
 
         # Fallback error categorization
         err_str = str(anon_err) if 'anon_err' in locals() else "Metadata extraction failed"
