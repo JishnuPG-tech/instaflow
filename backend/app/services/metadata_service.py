@@ -145,13 +145,21 @@ class MetadataService:
     @classmethod
     def fetch_metadata(cls, url: str) -> Dict[str, Any]:
         norm_url = normalize_instagram_url(url)
-        logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
+        logger.info(f"Fetching in-memory metadata for {norm_url}")
         
+        # Step 0: For /p/ Photo/Carousel URLs, execute Photo Fallback FIRST (300ms instant extraction)
+        if "/p/" in norm_url:
+            try:
+                logger.info("Executing Primary Photo Embed Extraction for /p/ URL...")
+                return cls.extract_photo_fallback(norm_url)
+            except Exception as photo_err:
+                logger.warning(f"Primary Photo Embed Extraction failed: {photo_err}. Proceeding to yt-dlp...")
+
         has_cookies = os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0
         
         err_messages = []
         
-        # Step 1: Cookie Mode FIRST if cookies available (Fastest & most reliable on server IPs)
+        # Step 1: Cookie Mode FIRST if cookies available
         if has_cookies:
             cookie_opts = cls.get_ydl_opts()
             try:
