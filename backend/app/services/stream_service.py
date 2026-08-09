@@ -17,7 +17,13 @@ class StreamService:
     def create_streaming_response(cls, filepath: str) -> StreamingResponse:
         filename = os.path.basename(filepath)
         file_size = os.path.getsize(filepath)
-        media_type = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg", ".webp", ".png")) else "video/mp4"
+        ext = filename.lower()
+        if ext.endswith((".jpg", ".jpeg", ".webp", ".png")):
+            media_type = "image/jpeg"
+        elif ext.endswith((".m4a", ".mp3", ".aac", ".ogg")):
+            media_type = "audio/m4a"
+        else:
+            media_type = "video/mp4"
         
         headers = {
             "Content-Disposition": f'attachment; filename="{filename}"',
@@ -31,3 +37,7 @@ class StreamService:
             media_type=media_type,
             headers=headers
         )
+
+    @classmethod
+    def create_file_response(cls, filepath: str) -> StreamingResponse:
+        return cls.create_streaming_response(filepath)

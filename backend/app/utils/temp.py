@@ -19,3 +19,12 @@ def cleanup_task_temp_dir(path: str):
             logger.info(f"Cleaned up task directory: {path}")
         except Exception as e:
             logger.warning(f"Failed to cleanup task directory {path}: {e}")
+
+class TempUtil:
+    @staticmethod
+    def create_task_dir() -> str:
+        return create_task_temp_dir()
+
+    @staticmethod
+    def cleanup_task_dir(path: str):
+        cleanup_task_temp_dir(path)
