@@ -29,8 +29,14 @@ class DownloadService:
         norm_url = normalize_instagram_url(url)
         is_photo_music = mux_audio or (requested_format and ("photo_music" in requested_format.lower() or "video_photo" in requested_format.lower()))
 
-        # Strategy 1: Direct Photo CDN Download (For /p/ URLs or Photo items when audio muxing is NOT requested)
-        if ("/p/" in norm_url or (item_entry and (not item_entry.get("vcodec") or item_entry.get("vcodec") == "none") and float(item_entry.get("duration") or 0.0) == 0.0)) and not audio_only and not is_photo_music:
+        # Strategy 1: Direct Photo CDN Download (For Photo items when audio muxing is NOT requested)
+        is_photo_item = False
+        if item_entry:
+            is_photo_item = bool(item_entry.get("is_photo")) or (not item_entry.get("vcodec") or item_entry.get("vcodec") == "none") and float(item_entry.get("duration") or 0.0) == 0.0
+        elif "/p/" in norm_url and not any(k in norm_url.lower() for k in ["reel", "tv"]):
+            is_photo_item = True
+
+        if is_photo_item and not audio_only and not is_photo_music:
             shortcode = "photo"
             if "/p/" in norm_url:
                 shortcode = norm_url.split("/p/")[1].split("/")[0]
@@ -39,34 +45,23 @@ class DownloadService:
             logger.info(f"Executing Direct Photo CDN download for shortcode {shortcode}")
             
             ext = "jpg"
-            if ".webp" in img_url.lower(): ext = "webp"
-            elif ".png" in img_url.lower(): ext = "png"
+            if img_url and ".webp" in img_url.lower(): ext = "webp"
+            elif img_url and ".png" in img_url.lower(): ext = "png"
             
             item_id = (item_entry or {}).get("id") or shortcode
             fname = f"InstaFlow_{item_id}.{ext}"
             target_path = os.path.join(task_dir, fname)
             
-            session = requests.Session()
-            session.headers.update({
+            headers = {
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
                 "Referer": "https://www.instagram.com/",
-            })
-            if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
-                try:
-                    with open(settings.COOKIES_FILE, "r") as f:
-                        for line in f:
-                            if not line.startswith("#") and line.strip():
-                                parts = line.strip().split("\t")
-                                if len(parts) >= 7:
-                                    session.cookies.set(parts[5], parts[6], domain=parts[0])
-                except Exception as ce:
-                    logger.warning(f"Error loading cookies in download_service photo download: {ce}")
-                    
+            }
             downloaded = False
             for try_url in [img_url, f"https://www.instagram.com/p/{shortcode}/media/?size=l"]:
+                if not try_url: continue
                 try:
-                    r_img = session.get(try_url, allow_redirects=True, timeout=15)
-                    if r_img.status_code == 200 and len(r_img.content) > 1000:
+                    r_img = requests.get(try_url, headers=headers, allow_redirects=True, timeout=10)
+                    if r_img.status_code == 200 and len(r_img.content) > 1000 and not r_img.headers.get("content-type", "").startswith("text/html"):
                         with open(target_path, "wb") as f:
                             f.write(r_img.content)
                         downloaded = True
@@ -74,11 +69,14 @@ class DownloadService:
                 except Exception as dl_err:
                     logger.warning(f"Photo CDN download attempt failed for {try_url}: {dl_err}")
                     
-            if not downloaded:
-                raise ValueError(f"Failed to download photo image for shortcode {shortcode}")
-                
-            ValidationService.validate_file(target_path, is_video=False)
-            return target_path
+            if downloaded:
+                try:
+                    ValidationService.validate_file(target_path, is_video=False)
+                    return target_path
+                except Exception as val_err:
+                    logger.warning(f"Validation failed for direct photo download: {val_err}")
+
+            logger.info("Direct Photo CDN download did not yield valid image file. Proceeding to Strategy 2...")
 
         # Strategy 2: Single-Frame Photo + Music MP4 Muxing
         if is_photo_music:
