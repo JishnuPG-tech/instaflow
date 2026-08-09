@@ -36,6 +36,7 @@ class MediaItem(BaseModel):
     imageUrl: Optional[str] = None
     videoFormats: List[Dict[str, Any]] = []
     audioFormats: List[Dict[str, Any]] = []
+    capabilities: Optional[MediaCapabilities] = None
 
 class MediaResult(BaseModel):
     contentType: ContentType

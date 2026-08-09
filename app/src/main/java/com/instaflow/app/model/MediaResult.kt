@@ -44,7 +44,8 @@ data class MediaItem(
     val duration: Float = 0.0f,
     val hasVideo: Boolean = false,
     val hasAudio: Boolean = false,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val capabilities: MediaCapabilities? = null
 )
 
 @Serializable

@@ -31,11 +31,15 @@ class ClassifierService:
             for idx, entry in enumerate(entries, start=1):
                 vcodec = entry.get("vcodec")
                 is_vid = (vcodec and vcodec != "none") or float(entry.get("duration") or 0.0) > 0.0 or entry.get("ext") == "mp4"
-                if is_vid or entry.get("acodec") != "none":
+                acodec = entry.get("acodec")
+                item_has_audio = bool(acodec and acodec != "none") or (is_vid and entry.get("audio_channels") is not None)
+                if item_has_audio:
                     audio_found = True
                     
                 item_type = MediaItemType.VIDEO if is_vid else MediaItemType.IMAGE
-                media_items.append(MediaItem(
+                item_content_type = ContentType.VIDEO_POST if is_vid else ContentType.IMAGE_POST
+                
+                item_obj = MediaItem(
                     itemId=str(entry.get("id") or f"{media_id}_{idx}"),
                     index=idx,
                     type=item_type,
@@ -44,9 +48,11 @@ class ClassifierService:
                     height=entry.get("height"),
                     duration=float(entry.get("duration") or 0.0),
                     hasVideo=is_vid,
-                    hasAudio=bool(entry.get("acodec") and entry.get("acodec") != "none"),
+                    hasAudio=item_has_audio,
                     imageUrl=entry.get("url") if not is_vid else None
-                ))
+                )
+                item_obj.capabilities = CapabilityService.resolve_capabilities(item_content_type, [item_obj], item_has_audio)
+                media_items.append(item_obj)
                 
             content_type = ContentType.CAROUSEL
             capabilities = CapabilityService.resolve_capabilities(content_type, media_items, audio_found)
@@ -73,7 +79,7 @@ class ClassifierService:
         vcodec = metadata.get("vcodec")
         is_video = metadata.get("is_video", False) or (vcodec and vcodec != "none") or duration > 0.0 or metadata.get("ext") == "mp4"
         acodec = metadata.get("acodec")
-        has_audio = bool(acodec and acodec != "none") or is_video
+        has_audio = bool(acodec and acodec != "none") or (is_video and metadata.get("audio_channels") is not None)
         
         # Determine exact ContentType from URL structure & metadata
         if "/reel/" in url or "/reels/" in url:
@@ -99,6 +105,7 @@ class ClassifierService:
             hasAudio=has_audio,
             imageUrl=metadata.get("url") if not is_video else None
         )
+        single_item.capabilities = CapabilityService.resolve_capabilities(content_type, [single_item], has_audio)
         
         capabilities = CapabilityService.resolve_capabilities(content_type, [single_item], has_audio)
         
