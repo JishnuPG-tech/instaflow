@@ -237,7 +237,6 @@ class DownloadService:
                         fname = f"InstaFlow_{prefix}_{embed_meta.get('id', 'media')}.{ext}"
                         target_path = os.path.join(task_dir, fname)
                         
-                        import requests
                         dl_session = requests.Session()
                         dl_headers = {
                             "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",

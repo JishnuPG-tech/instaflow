@@ -683,7 +683,7 @@ private fun ConfigurePage(
                         DrawerSheetSubtitle(text = "Format preference")
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             ButtonChip(
                                 icon = Icons.Outlined.VideoFile,
