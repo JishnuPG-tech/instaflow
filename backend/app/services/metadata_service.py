@@ -1,4 +1,7 @@
 import os
+import re
+import html
+import requests
 import logging
 from typing import Dict, Any, List
 import yt_dlp
@@ -44,10 +47,6 @@ class MetadataService:
 
     @staticmethod
     def extract_photo_fallback(url: str) -> Dict[str, Any]:
-        import re
-        import html
-        import requests
-        
         shortcode = "media"
         if "/p/" in url:
             shortcode = url.split("/p/")[1].split("/")[0]
