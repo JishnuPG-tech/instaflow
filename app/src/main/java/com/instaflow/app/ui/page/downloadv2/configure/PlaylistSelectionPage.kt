@@ -68,8 +68,8 @@ import com.instaflow.app.util.AUDIO_CONVERSION_FORMAT
 import com.instaflow.app.util.AUDIO_CONVERT
 import com.instaflow.app.util.AUDIO_FORMAT
 import com.instaflow.app.util.AUDIO_QUALITY
-import com.instaflow.app.util.DownloadType.Audio
-import com.instaflow.app.util.DownloadType.Video
+import com.instaflow.app.model.DownloadType.Audio
+import com.instaflow.app.model.DownloadType.Video
 import com.instaflow.app.util.DownloadUtil
 import com.instaflow.app.util.PlaylistResult
 import com.instaflow.app.util.PreferenceUtil.updateBoolean

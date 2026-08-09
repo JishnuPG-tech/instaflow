@@ -137,12 +137,11 @@ import com.instaflow.app.util.AUDIO_FORMAT
 import com.instaflow.app.util.AUDIO_QUALITY
 import com.instaflow.app.util.CUSTOM_COMMAND
 import com.instaflow.app.util.DatabaseUtil
-import com.instaflow.app.util.DownloadType
-import com.instaflow.app.util.DownloadType.Audio
-import com.instaflow.app.util.DownloadType.Command
-import com.instaflow.app.util.DownloadType.Post
-import com.instaflow.app.util.DownloadType.Video
-import com.instaflow.app.util.DownloadType.entries
+import com.instaflow.app.model.DownloadType
+import com.instaflow.app.model.DownloadType.Audio
+import com.instaflow.app.model.DownloadType.Command
+import com.instaflow.app.model.DownloadType.Post
+import com.instaflow.app.model.DownloadType.Video
 import com.instaflow.app.util.DownloadUtil
 import com.instaflow.app.util.FORMAT_SELECTION
 import com.instaflow.app.util.PLAYLIST
