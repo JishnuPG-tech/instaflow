@@ -160,6 +160,13 @@ import com.instaflow.app.util.VIDEO_FORMAT
 import com.instaflow.app.util.VIDEO_QUALITY
 import kotlinx.coroutines.launch
 
+private val AsymmetricCardShape = RoundedCornerShape(
+    topStart = 24.dp,
+    topEnd = 4.dp,
+    bottomEnd = 24.dp,
+    bottomStart = 4.dp
+)
+
 @Composable
 private fun DownloadType.label(): String =
     stringResource(
@@ -640,7 +647,7 @@ private fun ConfigurePage(
             Header(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 title = "Configure before download",
-                icon = Icons.Outlined.DoneAll,
+                icon = Icons.Outlined.CheckCircle,
             )
             
             Text(
@@ -822,7 +829,7 @@ fun ConfigurePagePlaylistVariant(
             Header(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 title = "Configure before download",
-                icon = Icons.Outlined.DoneAll,
+                icon = Icons.Outlined.CheckCircle,
             )
             DrawerSheetSubtitle(text = stringResource(id = R.string.download_type))
             DownloadTypeSelectionGroup(
@@ -1086,14 +1093,16 @@ private fun DownloadTypeSelectionGroup(
     onSelect: (DownloadType) -> Unit,
 ) {
     val typeCount = typeEntries.size
-    SingleChoiceSegmentedButtonRow(modifier = modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+    SingleChoiceSegmentedButtonRow(
+        modifier = modifier.fillMaxWidth().padding(vertical = 12.dp)
+    ) {
         typeEntries.forEachIndexed { index, type ->
             SingleChoiceSegmentedButton(
                 selected = selectedType == type,
                 onClick = { onSelect(type) },
                 shape = SegmentedButtonDefaults.itemShape(index, typeCount),
             ) {
-                Text(text = type.label())
+                Text(text = type.label(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }

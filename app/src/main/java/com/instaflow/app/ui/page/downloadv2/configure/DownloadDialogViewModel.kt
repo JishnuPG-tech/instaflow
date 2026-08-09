@@ -154,12 +154,15 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
         val url = action.urlList.firstOrNull() ?: ""
         val normalized = com.instaflow.app.features.instagram.url.InstagramUrlNormalizer.normalize(url)
         val parseResult = com.instaflow.app.util.InstagramUrlValidator.parseUrl(normalized)
+        
+        // Phase 1: Always show Configure page first to match Seal UX
+        // If it's Instagram, we might want to default to "Post" or "Video"
         if (parseResult.isValid) {
-            Log.i(TAG, "[Pipeline] proceedWithUrls → Instagram, type=${parseResult.type}, url=$normalized")
-            analyzeInstagram(normalized, parseResult.type)
-        } else {
-            mSheetStateFlow.update { SheetState.Configure(action.urlList) }
+            Log.i(TAG, "[Pipeline] Instagram URL detected, showing Configure page: $normalized")
+            // Note: We could update the default download type in preferences here if needed
         }
+        
+        mSheetStateFlow.update { SheetState.Configure(action.urlList) }
     }
 
     private fun fetchPlaylist(action: Action.FetchPlaylist) {

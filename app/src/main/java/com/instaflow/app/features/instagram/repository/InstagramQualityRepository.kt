@@ -61,8 +61,8 @@ object InstagramQualityRepository {
     }
 
     private fun getMediaTypeLabel(type: InstagramMediaType, hasMusic: Boolean): String = when (type) {
-        InstagramMediaType.IMAGE -> if (hasMusic) "Photo with Music" else "Image Post"
-        InstagramMediaType.VIDEO -> "Video Post"
+        InstagramMediaType.IMAGE -> if (hasMusic) "Photo with Music" else "Instagram Post"
+        InstagramMediaType.VIDEO -> "Instagram Post"
         InstagramMediaType.REEL -> "Instagram Reel"
         InstagramMediaType.CAROUSEL -> "Carousel Post"
         InstagramMediaType.STORY -> "Instagram Story"

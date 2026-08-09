@@ -17,10 +17,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.core.logging import request_id_ctx_var, logger
 from backend.app.api.health import router as health_router
-from backend.app.api.analyze import router as analyze_router
-from backend.app.api.download import router as download_router
+from backend.app.api.gateway import router as gateway_router
+from backend.app.api.video import router as video_router
+from backend.app.api.audio import router as audio_router
+from backend.app.api.post import router as post_router
 
-# InstaFlow API Engine v2.0.1
+# InstaFlow Modular Service Engine v2.1.0
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
@@ -47,19 +49,9 @@ async def request_id_middleware(request: Request, call_next):
     request_id_ctx_var.reset(token)
     return response
 
-# Include API Routers
+# Register API Routers
 app.include_router(health_router, tags=["Health"])
-app.include_router(analyze_router, prefix=settings.API_V1_PREFIX, tags=["Analyze"])
-app.include_router(download_router, prefix=settings.API_V1_PREFIX, tags=["Download"])
-
-import asyncio
-from backend.app.services.cleanup_service import CleanupService
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"InstaFlow Remote Processing Engine started on {settings.HOST}:{settings.PORT}")
-    asyncio.create_task(CleanupService.periodic_cleanup_loop())
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host=settings.HOST, port=settings.PORT)
+app.include_router(gateway_router, prefix=settings.API_V1_PREFIX, tags=["Gateway"])
+app.include_router(video_router, prefix=settings.API_V1_PREFIX, tags=["Video Engine"])
+app.include_router(audio_router, prefix=settings.API_V1_PREFIX, tags=["Audio Engine"])
+app.include_router(post_router, prefix=settings.API_V1_PREFIX, tags=["Post Engine"])

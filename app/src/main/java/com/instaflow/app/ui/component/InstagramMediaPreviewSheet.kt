@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +58,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +70,13 @@ import com.instaflow.app.database.InstagramMediaItem
 import com.instaflow.app.features.instagram.models.InstagramFormat
 import com.instaflow.app.util.InstagramUrlType
 import com.instaflow.app.util.toFileSizeText
+
+private val AsymmetricCardShape = RoundedCornerShape(
+    topStart = 28.dp,
+    topEnd = 8.dp,
+    bottomEnd = 28.dp,
+    bottomStart = 8.dp
+)
 
 @Composable
 fun InstagramMediaPreviewSheet(
@@ -106,9 +116,11 @@ fun InstagramMediaPreviewSheet(
             modifier = Modifier
                 .align(Alignment.CenterHorizontally)
                 .padding(vertical = 12.dp)
-                .size(width = 32.dp, height = 4.dp)
-                .border(width = 2.dp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f), shape = CircleShape)
-        )
+                .size(width = 36.dp, height = 4.dp)
+                .alpha(0.4f)
+        ) {
+            Surface(modifier = Modifier.fillMaxSize(), shape = CircleShape, color = MaterialTheme.colorScheme.onSurfaceVariant) {}
+        }
 
         // Header
         Row(
@@ -121,14 +133,14 @@ fun InstagramMediaPreviewSheet(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Surface(
-                    modifier = Modifier.size(42.dp),
+                    modifier = Modifier.size(48.dp),
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = author.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
@@ -138,25 +150,35 @@ fun InstagramMediaPreviewSheet(
                 Column(modifier = Modifier.weight(1f, fill = false)) {
                     Text(
                         text = if (author.startsWith("@")) author else "@$author",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "Instagram Media",
+                        text = when(urlType) {
+                            InstagramUrlType.REEL -> "Instagram Reel"
+                            InstagramUrlType.STORY -> "Instagram Story"
+                            InstagramUrlType.HIGHLIGHT -> "Story Highlight"
+                            InstagramUrlType.PROFILE_PIC -> "Profile Picture"
+                            else -> if (isCarousel) "Carousel Post" else "Instagram Media"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
 
+            Spacer(modifier = Modifier.width(8.dp))
+
             Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -172,15 +194,26 @@ fun InstagramMediaPreviewSheet(
                         tint = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
                     Spacer(modifier = Modifier.width(6.dp))
+                    val labelText = if (duration.isNotEmpty() && duration != "Photo") "$mediaTypeLabel • $duration" else mediaTypeLabel
                     Text(
-                        text = if (duration.isNotEmpty() && duration != "Photo") "$mediaTypeLabel • $duration" else mediaTypeLabel,
+                        text = labelText,
                         style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         maxLines = 1,
                     )
                 }
             }
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = if (mediaTypeLabel.contains("Video") || mediaTypeLabel.contains("Reel")) "Video by ${author.removePrefix("@")}" else "Post by ${author.removePrefix("@")}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
 
         if (caption.isNotEmpty()) {
             Text(
@@ -189,14 +222,14 @@ fun InstagramMediaPreviewSheet(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (isCarousel && items.isNotEmpty()) {
-            // Carousel Grid UI
+            // Carousel Picker UI
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -286,15 +319,15 @@ fun InstagramMediaPreviewSheet(
         } else {
             // Single Media UI
             LazyColumn(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(max = 550.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 item {
                     if (thumbnailUrl.isNotEmpty()) {
                         Card(
-                            modifier = Modifier.fillMaxWidth().height(200.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                            modifier = Modifier.fillMaxWidth().height(220.dp),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             AsyncImage(
                                 model = thumbnailUrl,
@@ -306,71 +339,77 @@ fun InstagramMediaPreviewSheet(
                     }
                 }
                 
-                val allFormats = videoQualityOptions + audioQualityOptions
-                if (allFormats.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "Select Quality",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    }
+                item {
+                    Text(
+                        text = "Select Quality",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Black,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
 
-                    items(allFormats) { format ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { selectedFormat = format },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selectedFormat == format) 
-                                    MaterialTheme.colorScheme.primaryContainer 
-                                else MaterialTheme.colorScheme.surfaceContainerHigh
-                            )
+                val allFormats = videoQualityOptions + audioQualityOptions
+                items(allFormats) { format ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { selectedFormat = format },
+                        shape = AsymmetricCardShape,
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (selectedFormat == format) 
+                                MaterialTheme.colorScheme.primaryContainer 
+                            else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = format.resolutionLabel,
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (selectedFormat == format) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                    )
-                                    val sizeText = format.fileSizeApprox.toFileSizeText()
-                                    if (sizeText.isNotEmpty()) {
-                                        Text(
-                                            text = sizeText,
-                                            style = MaterialTheme.typography.labelMedium,
-                                            color = if (selectedFormat == format) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                RadioButton(
-                                    selected = selectedFormat == format,
-                                    onClick = { selectedFormat = format }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = format.resolutionLabel,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (selectedFormat == format) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                 )
+                                val sizeText = format.fileSizeApprox.toFileSizeText()
+                                if (sizeText.isNotEmpty()) {
+                                    Text(
+                                        text = sizeText,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = if (selectedFormat == format) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
+                            RadioButton(
+                                selected = selectedFormat == format,
+                                onClick = { selectedFormat = format },
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = if (selectedFormat == format) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                                )
+                            )
                         }
                     }
                 }
 
                 item {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = { 
                             selectedFormat?.let { onDownloadWithFormat(it) } ?: run {
                                 onDownloadWithFormat(InstagramFormat("best", "Original Quality", 0, 0, "jpg", 0, false))
                             }
                         },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(16.dp)
+                        modifier = Modifier.fillMaxWidth().height(58.dp),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        )
                     ) {
-                        Icon(Icons.Default.Download, null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Download Media", fontWeight = FontWeight.Black)
+                        Icon(Icons.Default.Download, null, modifier = Modifier.size(22.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Download Media", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                     }
                 }
             }
