@@ -44,18 +44,57 @@ class MetadataService:
 
     @staticmethod
     def extract_photo_fallback(url: str) -> Dict[str, Any]:
+        import re
+        import html
+        import requests
+        
         shortcode = "photo"
         if "/p/" in url:
             shortcode = url.split("/p/")[1].split("/")[0]
         elif "/reel/" in url:
             shortcode = url.split("/reel/")[1].split("/")[0]
             
-        logger.info(f"Executing Instant Zero-Latency Photo Extraction for shortcode {shortcode}")
+        logger.info(f"Executing Photo Fallback Extraction for shortcode {shortcode}")
         
-        primary_url = f"https://www.instagram.com/p/{shortcode}/media/?size=l"
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+            "Referer": "https://www.instagram.com/",
+        })
+        
+        clean_images = []
         username = "Instagram User"
         caption = f"Instagram Photo ({shortcode})"
 
+        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
+        try:
+            resp = session.get(embed_url, timeout=6.0)
+            if resp.status_code == 200:
+                resp_text = resp.text
+                images = re.findall(r'src="([^"]+fbcdn\.net[^"]+)"', resp_text) or re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', resp_text) or re.findall(r'property="og:image" content="([^"]+)"', resp_text)
+                for img in images:
+                    clean = html.unescape(img.replace("\\/", "/").replace("\\u0026", "&"))
+                    if clean not in clean_images:
+                        clean_images.append(clean)
+                        
+                username_match = re.search(r'class="UsernameText"[^>]*>(.*?)</div>', resp_text, re.DOTALL)
+                if username_match:
+                    raw_user = re.sub(r'<[^>]+>', '', username_match.group(1)).strip()
+                    if raw_user:
+                        username = raw_user.split()[0]
+                        
+                caption_match = re.search(r'<div class="Caption"[^>]*>(.*?)</div>', resp_text, re.DOTALL)
+                if caption_match:
+                    cap_text = html.unescape(re.sub(r'<[^>]+>', '', caption_match.group(1)).strip())
+                    if cap_text:
+                        caption = cap_text
+        except Exception as embed_err:
+            logger.warning(f"Embed page extraction error: {embed_err}")
+
+        if not clean_images:
+            clean_images.append(f"https://www.instagram.com/p/{shortcode}/media/?size=l")
+            
+        primary_url = clean_images[0]
         meta: Dict[str, Any] = {
             "id": shortcode,
             "title": caption,
