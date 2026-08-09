@@ -45,12 +45,36 @@ class DownloadService:
             fname = f"InstaFlow_{item_id}.{ext}"
             target_path = os.path.join(task_dir, fname)
             
-            req = urllib.request.Request(img_url, headers={
+            session = requests.Session()
+            session.headers.update({
                 "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
-                "Referer": "https://www.instagram.com/"
+                "Referer": "https://www.instagram.com/",
             })
-            with urllib.request.urlopen(req, timeout=10) as resp, open(target_path, "wb") as f:
-                f.write(resp.read())
+            if os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0:
+                try:
+                    with open(settings.COOKIES_FILE, "r") as f:
+                        for line in f:
+                            if not line.startswith("#") and line.strip():
+                                parts = line.strip().split("\t")
+                                if len(parts) >= 7:
+                                    session.cookies.set(parts[5], parts[6], domain=parts[0])
+                except Exception as ce:
+                    logger.warning(f"Error loading cookies in download_service photo download: {ce}")
+                    
+            downloaded = False
+            for try_url in [img_url, f"https://www.instagram.com/p/{shortcode}/media/?size=l"]:
+                try:
+                    r_img = session.get(try_url, allow_redirects=True, timeout=15)
+                    if r_img.status_code == 200 and len(r_img.content) > 1000:
+                        with open(target_path, "wb") as f:
+                            f.write(r_img.content)
+                        downloaded = True
+                        break
+                except Exception as dl_err:
+                    logger.warning(f"Photo CDN download attempt failed for {try_url}: {dl_err}")
+                    
+            if not downloaded:
+                raise ValueError(f"Failed to download photo image for shortcode {shortcode}")
                 
             ValidationService.validate_file(target_path, is_video=False)
             return target_path
