@@ -45,8 +45,10 @@ import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material.icons.filled.VideoFile
 import androidx.compose.material.icons.outlined.AudioFile
 import androidx.compose.material.icons.outlined.Cancel
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.DoneAll
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandMore
@@ -92,6 +94,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -137,11 +140,11 @@ import com.instaflow.app.util.DatabaseUtil
 import com.instaflow.app.util.DownloadType
 import com.instaflow.app.util.DownloadType.Audio
 import com.instaflow.app.util.DownloadType.Command
-import com.instaflow.app.util.DownloadType.Playlist
 import com.instaflow.app.util.DownloadType.Video
 import com.instaflow.app.util.DownloadType.entries
 import com.instaflow.app.util.DownloadUtil
 import com.instaflow.app.util.FORMAT_SELECTION
+import com.instaflow.app.util.PLAYLIST
 import com.instaflow.app.util.PreferenceStrings
 import com.instaflow.app.util.PreferenceUtil
 import com.instaflow.app.util.PreferenceUtil.getBoolean
@@ -163,7 +166,6 @@ private fun DownloadType.label(): String =
             Audio -> R.string.audio
             Video -> R.string.video
             Command -> R.string.commands
-            Playlist -> R.string.playlist
         }
     )
 
@@ -617,9 +619,6 @@ private fun ConfigurePage(
         }
 
     LaunchedEffect(selectedType) {
-        if (selectedType == Playlist) {
-            useFormatSelection = false
-        }
     }
 
     Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -629,8 +628,9 @@ private fun ConfigurePage(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .padding(vertical = 12.dp)
-                    .size(width = 32.dp, height = 4.dp)
-                    .alpha(0.4f)
+                    .size(width = 36.dp, height = 5.dp)
+                    .alpha(0.5f),
+                contentAlignment = Alignment.Center
             ) {
                 Surface(modifier = Modifier.fillMaxSize(), shape = CircleShape, color = MaterialTheme.colorScheme.onSurfaceVariant) {}
             }
@@ -645,7 +645,7 @@ private fun ConfigurePage(
                 text = "Adjust this download",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
                 textAlign = TextAlign.Center
             )
 
@@ -672,42 +672,32 @@ private fun ConfigurePage(
                             selected = useFormatSelection,
                             onClick = { useFormatSelection = true },
                             shape = SegmentedButtonDefaults.itemShape(1, 2),
-                            enabled = selectedType != Playlist,
                         ) {
                             Text(text = "Custom")
                         }
                     }
 
-                    if (!useFormatSelection) {
+                    if (useFormatSelection) {
                         DrawerSheetSubtitle(text = "Format preference")
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (selectedType == Audio) {
-                                ButtonChip(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Outlined.AudioFile,
-                                    label = PreferenceStrings.getAudioFormatDesc(preferences.audioFormat),
-                                    onClick = { onPresetEdit(Audio) }
-                                )
-                                ButtonChip(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Outlined.Sync,
-                                    label = if (preferences.convertAudio) "Converted" else "Unconverted",
-                                    onClick = { onPresetEdit(Audio) }
-                                )
-                            } else if (selectedType == Video) {
-                                ButtonChip(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Outlined.VideoFile,
-                                    label = PreferenceStrings.getVideoFormatLabel(preferences.videoFormat),
-                                    onClick = { onPresetEdit(Video) }
-                                )
-                                ButtonChip(
-                                    modifier = Modifier.weight(1f),
-                                    icon = Icons.Outlined.HighQuality,
-                                    label = PreferenceStrings.getVideoResolutionDesc(preferences.videoResolution),
-                                    onClick = { onPresetEdit(Video) }
-                                )
-                            }
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ButtonChip(
+                                icon = Icons.Outlined.VideoFile,
+                                label = "Quality",
+                                onClick = { onPresetEdit(Video) }
+                            )
+                            ButtonChip(
+                                icon = Icons.Outlined.HighQuality,
+                                label = PreferenceStrings.getVideoResolutionDesc(preferences.videoResolution),
+                                onClick = { onPresetEdit(Video) }
+                            )
+                            ButtonChip(
+                                icon = Icons.Outlined.AudioFile,
+                                label = "Audio format",
+                                onClick = { onPresetEdit(Audio) }
+                            )
                         }
                     }
                 } else {
@@ -759,11 +749,11 @@ private fun ConfigurePage(
         
         Spacer(Modifier.height(16.dp))
         
-        DrawerSheetSubtitle(text = "Additional settings", modifier = Modifier.padding(horizontal = 20.dp))
+        DrawerSheetSubtitle(text = "Additional settings", modifier = Modifier.padding(horizontal = 24.dp))
         settingChips()
 
         ActionButtons(
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
             canProceed = canProceed,
             selectedType = selectedType,
             useFormatSelection = useFormatSelection,
@@ -789,17 +779,13 @@ private fun ConfigurePage(
                         downloadType = selectedType,
                     )
                 )
-                if (selectedType == Playlist) {
-                    onActionPost(Action.FetchPlaylist(url = url, preferences = preferences))
-                } else {
-                    onActionPost(
-                        Action.FetchFormats(
-                            url = url,
-                            audioOnly = selectedType == Audio,
-                            preferences = preferences,
-                        )
+                onActionPost(
+                    Action.FetchFormats(
+                        url = url,
+                        audioOnly = selectedType == Audio,
+                        preferences = preferences,
                     )
-                }
+                )
             },
             onTaskStart = {
                 onConfigSave(
@@ -833,7 +819,7 @@ fun ConfigurePagePlaylistVariant(
         Column(modifier = modifier.padding(horizontal = 20.dp)) {
             Header(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                title = stringResource(R.string.settings_before_download),
+                title = "Configure before download",
                 icon = Icons.Outlined.DoneAll,
             )
             DrawerSheetSubtitle(text = stringResource(id = R.string.download_type))
@@ -899,43 +885,49 @@ private fun AdditionalSettings(
 
     Row(
         modifier = modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        OutlinedButton(
+            onClick = {
+                PLAYLIST.updateBoolean(!preference.downloadPlaylist)
+                onPreferenceUpdate()
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(44.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = if (preference.downloadPlaylist) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
+            )
+        ) {
+            Text("Download playlist", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        }
+
         OutlinedButton(
             onClick = {
                 SUBTITLE.updateBoolean(!preference.downloadSubtitle)
                 onPreferenceUpdate()
             },
             shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.height(44.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp),
             colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (preference.downloadSubtitle) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                containerColor = if (preference.downloadSubtitle) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
             )
         ) {
-            Text("Download subtitles", style = MaterialTheme.typography.labelMedium)
-        }
-
-        OutlinedButton(
-            onClick = {
-                THUMBNAIL.updateBoolean(!preference.createThumbnail)
-                onPreferenceUpdate()
-            },
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.outlinedButtonColors(
-                containerColor = if (preference.createThumbnail) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-            )
-        ) {
-            Text("Create thumbnail", style = MaterialTheme.typography.labelMedium)
+            Text("Download subtitles", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         }
 
         if (accountsProfiles.isNotEmpty()) {
             OutlinedButton(
                 onClick = { showAccountsDialog = true },
                 shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(44.dp),
+                contentPadding = PaddingValues(horizontal = 20.dp),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (preference.accounts) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
+                    containerColor = if (preference.accounts) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f) else Color.Transparent
                 )
             ) {
-                Text("Accounts", style = MaterialTheme.typography.labelMedium)
+                Text("Accounts", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -1125,7 +1117,6 @@ private fun Preset(
                 PreferenceStrings.getVideoPresetText(preference)
             }
 
-            Playlist -> stringResource(R.string.preset_format_selection_desc)
             else -> ""
         }
 
@@ -1218,7 +1209,7 @@ private fun ActionButton.Icon() {
         imageVector =
             when (this) {
                 FetchInfo -> Icons.AutoMirrored.Filled.ArrowForward
-                Download -> Icons.Outlined.DoneAll
+                Download -> Icons.Outlined.CheckCircle
                 StartTask -> Icons.Filled.DownloadDone
             },
         contentDescription = null,
@@ -1234,7 +1225,8 @@ private fun ActionButton.Label() {
             Download -> "Download"
             StartTask -> "Start"
         },
-        modifier = Modifier.padding(start = 8.dp),
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Bold
     )
 }
 
@@ -1252,53 +1244,56 @@ private fun ActionButtons(
     val action =
         if (selectedType == Command) {
             StartTask
-        } else if (selectedType == Playlist || useFormatSelection) {
+        } else if (useFormatSelection) {
             FetchInfo
         } else {
             Download
         }
 
     val state = rememberLazyListState()
-    LazyRow(
-        modifier = modifier.fillMaxWidth().padding(top = 12.dp),
-        horizontalArrangement = Arrangement.End,
-        state = state,
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        item {
-            OutlinedButtonWithIcon(
-                modifier = Modifier.padding(horizontal = 12.dp),
-                onClick = onCancel,
-                icon = Icons.Outlined.Cancel,
-                text = stringResource(R.string.cancel),
-            )
+        OutlinedButton(
+            onClick = onCancel,
+            modifier = Modifier.height(48.dp).weight(1f, fill = false),
+            shape = RoundedCornerShape(24.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
+        ) {
+            Icon(Icons.Outlined.Cancel, null, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("Cancel", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
-        item {
-            Button(
-                modifier = Modifier,
-                onClick = {
-                    when (action) {
-                        FetchInfo -> onFetchInfo()
-                        Download -> onDownload()
-                        StartTask -> onTaskStart()
-                    }
+
+        Button(
+            modifier = Modifier.height(48.dp).weight(1f, fill = false),
+            onClick = {
+                when (action) {
+                    FetchInfo -> onFetchInfo()
+                    Download -> onDownload()
+                    StartTask -> onTaskStart()
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+            contentPadding = PaddingValues(horizontal = 24.dp),
+            enabled = canProceed,
+        ) {
+            AnimatedContent(
+                targetState = action,
+                label = "",
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(220, delayMillis = 90))).togetherWith(
+                        fadeOut(animationSpec = tween(90))
+                    )
                 },
-                contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-                enabled = canProceed,
-            ) {
-                AnimatedContent(
-                    targetState = action,
-                    label = "",
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(220, delayMillis = 90))).togetherWith(
-                            fadeOut(animationSpec = tween(90))
-                        )
-                    },
-                ) { action ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        action.Icon()
-                        action.Label()
-                    }
+            ) { action ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    action.Icon()
+                    Spacer(Modifier.width(10.dp))
+                    action.Label()
                 }
             }
         }

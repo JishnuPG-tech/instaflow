@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Clear
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.instaflow.app.R
@@ -46,11 +48,12 @@ fun ButtonChip(
     onClick: () -> Unit,
 ) {
     ElevatedAssistChip(
-        modifier = modifier.padding(horizontal = 4.dp),
+        modifier = modifier,
         onClick = onClick,
-        label = { Text(label) },
+        label = { Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) },
         colors = AssistChipDefaults.elevatedAssistChipColors(leadingIconContentColor = iconColor),
         enabled = enabled,
+        shape = RoundedCornerShape(12.dp),
         leadingIcon = {
             if (icon != null)
                 Icon(

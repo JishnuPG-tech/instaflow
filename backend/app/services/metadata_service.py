@@ -42,12 +42,95 @@ class MetadataService:
             opts["cookiefile"] = settings.COOKIES_FILE
         return opts
 
+    @staticmethod
+    def extract_photo_fallback(url: str) -> Dict[str, Any]:
+        import re
+        import html
+        import requests
+        
+        logger.info(f"Executing Photo Embed Fallback Extraction for {url}")
+        
+        shortcode = "photo"
+        if "/p/" in url:
+            shortcode = url.split("/p/")[1].split("/")[0]
+        elif "/reel/" in url:
+            shortcode = url.split("/reel/")[1].split("/")[0]
+            
+        embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+            "Referer": "https://www.instagram.com/"
+        }
+        
+        resp = requests.get(embed_url, headers=headers, timeout=5)
+        
+        images = re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', resp.text)
+        if not images:
+            images = re.findall(r'property="og:image" content="([^"]+)"', resp.text)
+        if not images:
+            images = re.findall(r'"display_url":"([^"]+)"', resp.text)
+            
+        clean_images = []
+        for img in images:
+            clean = img.replace("\\/", "/").replace("\\u0026", "&").replace("&amp;", "&")
+            if clean not in clean_images:
+                clean_images.append(clean)
+                
+        username_match = re.search(r'class="UsernameText"[^>]*>(.*?)</div>', resp.text, re.DOTALL)
+        username = "Instagram User"
+        if username_match:
+            raw_user = re.sub(r'<[^>]+>', '', username_match.group(1)).strip()
+            username = raw_user.split()[0] if raw_user else "Instagram User"
+            
+        caption_match = re.search(r'<div class="Caption"[^>]*>(.*?)</div>', resp.text, re.DOTALL)
+        caption = f"Post by {username}"
+        if caption_match:
+            cap_text = html.unescape(re.sub(r'<[^>]+>', '', caption_match.group(1)).strip())
+            if cap_text:
+                caption = cap_text
+                
+        if not clean_images:
+            raise RuntimeError("No photo images found in post")
+            
+        primary_url = clean_images[0]
+        entries = []
+        for idx, img_url in enumerate(clean_images):
+            entries.append({
+                "id": f"{shortcode}_{idx+1}",
+                "title": f"Photo {idx+1} by {username}",
+                "url": img_url,
+                "thumbnail": img_url,
+                "vcodec": "none",
+                "acodec": "none",
+                "duration": 0
+            })
+            
+        meta: Dict[str, Any] = {
+            "id": shortcode,
+            "title": caption,
+            "uploader": username,
+            "channel": username,
+            "vcodec": "none",
+            "acodec": "none",
+            "duration": 0,
+            "thumbnail": primary_url,
+            "url": primary_url,
+            "ext": "jpg",
+            "is_photo": True,
+            "formats": [{"url": u, "ext": "jpg", "format_id": f"photo_{idx+1}", "vcodec": "none", "acodec": "none"} for idx, u in enumerate(clean_images)]
+        }
+        if len(entries) > 1:
+            meta["entries"] = entries
+        return meta
+
     @classmethod
     def fetch_metadata(cls, url: str) -> Dict[str, Any]:
         norm_url = normalize_instagram_url(url)
         logger.info(f"Fetching in-memory yt-dlp metadata for {norm_url}")
         
         has_cookies = os.path.exists(settings.COOKIES_FILE) and os.path.getsize(settings.COOKIES_FILE) > 0
+        
+        err_messages = []
         
         # Step 1: Cookie Mode FIRST if cookies available (Fastest & most reliable on server IPs)
         if has_cookies:
@@ -59,7 +142,9 @@ class MetadataService:
                         logger.info("Cookie Mode metadata extraction succeeded!")
                         return ydl_cookie.sanitize_info(info_cookie)
             except Exception as cookie_err:
-                logger.warning(f"Cookie Mode metadata extraction failed: {str(cookie_err)[:150]}. Trying Anonymous Mode fallback...")
+                err_str = str(cookie_err)
+                err_messages.append(err_str)
+                logger.warning(f"Cookie Mode metadata extraction failed: {err_str[:150]}. Trying Anonymous Mode fallback...")
 
         # Step 2: Anonymous Mode fallback (Or primary if no cookies file)
         anon_opts: Dict[str, Any] = {
@@ -85,10 +170,21 @@ class MetadataService:
                     logger.info("Anonymous Mode metadata extraction succeeded!")
                     return ydl_anon.sanitize_info(info_anon)
         except Exception as anon_err:
-            logger.error(f"Anonymous Mode metadata extraction failed: {str(anon_err)[:150]}")
+            err_str = str(anon_err)
+            err_messages.append(err_str)
+            logger.error(f"Anonymous Mode metadata extraction failed: {err_str[:150]}")
+
+        # Step 3: Photo & Carousel Embed Fallback for non-video posts
+        combined_err = " ".join(err_messages).lower()
+        if "no video" in combined_err or "404" in combined_err or "not found" in combined_err or "/p/" in url:
+            try:
+                logger.info("Triggering Photo Embed Fallback for non-video post...")
+                return cls.extract_photo_fallback(norm_url)
+            except Exception as photo_err:
+                logger.error(f"Photo embed fallback failed: {photo_err}")
 
         # Fallback error categorization
-        err_str = str(anon_err) if 'anon_err' in locals() else "Metadata extraction failed"
+        err_str = str(anon_err) if 'anon_err' in locals() else (err_messages[0] if err_messages else "Metadata extraction failed")
         if "Login required" in err_str:
             raise ValueError(ErrorCode.LOGIN_REQUIRED.value)
         elif "Private account" in err_str or "private" in err_str.lower():
