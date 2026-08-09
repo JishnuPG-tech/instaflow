@@ -28,34 +28,32 @@ class DownloadService:
         norm_url = normalize_instagram_url(url)
         is_photo_music = mux_audio or (requested_format and ("photo_music" in requested_format.lower() or "video_photo" in requested_format.lower()))
 
-        # Strategy 1: Direct Photo CDN Download (Only if audio muxing is NOT requested)
-        if item_entry and not audio_only and not is_photo_music:
-            img_url = item_entry.get("thumbnail") or item_entry.get("url")
-            if not img_url and item_entry.get("thumbnails"):
-                img_url = item_entry["thumbnails"][-1].get("url")
+        # Strategy 1: Direct Photo CDN Download (For /p/ URLs or Photo items when audio muxing is NOT requested)
+        if ("/p/" in norm_url or (item_entry and (not item_entry.get("vcodec") or item_entry.get("vcodec") == "none") and float(item_entry.get("duration") or 0.0) == 0.0)) and not audio_only and not is_photo_music:
+            shortcode = "photo"
+            if "/p/" in norm_url:
+                shortcode = norm_url.split("/p/")[1].split("/")[0]
                 
-            vcodec = item_entry.get("vcodec")
-            acodec = item_entry.get("acodec")
-            duration = float(item_entry.get("duration") or 0.0)
+            img_url = (item_entry or {}).get("thumbnail") or (item_entry or {}).get("url") or f"https://www.instagram.com/p/{shortcode}/media/?size=l"
+            logger.info(f"Executing Direct Photo CDN download for shortcode {shortcode}")
             
-            if img_url and (not vcodec or vcodec == "none") and (not acodec or acodec == "none") and duration == 0.0:
-                logger.info("Executing Photo CDN download")
-                ext = "jpg"
-                if ".webp" in img_url.lower(): ext = "webp"
-                elif ".png" in img_url.lower(): ext = "png"
+            ext = "jpg"
+            if ".webp" in img_url.lower(): ext = "webp"
+            elif ".png" in img_url.lower(): ext = "png"
+            
+            item_id = (item_entry or {}).get("id") or shortcode
+            fname = f"InstaFlow_{item_id}.{ext}"
+            target_path = os.path.join(task_dir, fname)
+            
+            req = urllib.request.Request(img_url, headers={
+                "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+                "Referer": "https://www.instagram.com/"
+            })
+            with urllib.request.urlopen(req, timeout=10) as resp, open(target_path, "wb") as f:
+                f.write(resp.read())
                 
-                fname = f"InstaFlow_{item_entry.get('id', 'photo')}.{ext}"
-                target_path = os.path.join(task_dir, fname)
-                
-                req = urllib.request.Request(img_url, headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                    "Referer": "https://www.instagram.com/"
-                })
-                with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
-                    f.write(resp.read())
-                    
-                ValidationService.validate_file(target_path, is_video=False)
-                return target_path
+            ValidationService.validate_file(target_path, is_video=False)
+            return target_path
 
         # Strategy 2: Single-Frame Photo + Music MP4 Muxing
         if is_photo_music:
