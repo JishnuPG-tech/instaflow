@@ -223,35 +223,33 @@ class DownloadService:
                     logger.warning(f"Anonymous fallback video download failed: {str(fb_err)[:200]}")
                     err_str = str(fb_err)
 
-            # Fallback 2: Check Photo Embed Fallback ONLY IF video download completely failed AND post has no video or is a /p/ static photo post!
+            # Fallback 2: Direct Embed Extraction (supports both MP4 Video & Photo URLs!)
             if not download_succeeded:
-                is_photo_post = "/p/" in norm_url and not any(k in norm_url.lower() for k in ["reel", "tv"])
-                is_no_video_err = "no video" in err_str.lower() or "there is no video" in err_str.lower()
-                
-                if is_photo_post or is_no_video_err:
-                    try:
-                        logger.info("Executing Direct Photo Embed Download for photo post...")
-                        photo_meta = MetadataService.extract_photo_fallback(norm_url)
-                        img_url = photo_meta.get("url") or photo_meta.get("thumbnail")
-                        if img_url:
-                            ext = "jpg"
-                            if ".webp" in img_url.lower(): ext = "webp"
-                            elif ".png" in img_url.lower(): ext = "png"
+                try:
+                    logger.info("Executing Direct Embed Fallback for media post...")
+                    embed_meta = MetadataService.extract_photo_fallback(norm_url)
+                    media_url = embed_meta.get("url") or embed_meta.get("thumbnail")
+                    if media_url:
+                        is_vid = embed_meta.get("is_video", False) or embed_meta.get("ext") == "mp4" or ".mp4" in media_url.lower()
+                        ext = "mp4" if is_vid else "jpg"
+                        if ".webp" in media_url.lower(): ext = "webp"
+                        elif ".png" in media_url.lower(): ext = "png"
+                        
+                        prefix = "Video" if is_vid else "Photo"
+                        fname = f"InstaFlow_{prefix}_{embed_meta.get('id', 'media')}.{ext}"
+                        target_path = os.path.join(task_dir, fname)
+                        
+                        req = urllib.request.Request(media_url, headers={
+                            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+                            "Referer": "https://www.instagram.com/"
+                        })
+                        with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
+                            f.write(resp.read())
                             
-                            fname = f"InstaFlow_Photo_{photo_meta.get('id', 'media')}.{ext}"
-                            target_path = os.path.join(task_dir, fname)
-                            
-                            req = urllib.request.Request(img_url, headers={
-                                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-                                "Referer": "https://www.instagram.com/"
-                            })
-                            with urllib.request.urlopen(req) as resp, open(target_path, "wb") as f:
-                                f.write(resp.read())
-                                
-                            ValidationService.validate_file(target_path, is_video=False)
-                            return target_path
-                    except Exception as photo_err:
-                        logger.error(f"Direct Photo Embed Download failed: {photo_err}")
+                        ValidationService.validate_file(target_path, is_video=is_vid)
+                        return target_path
+                except Exception as embed_err:
+                    logger.error(f"Direct Embed Download failed: {embed_err}")
 
                 raise RuntimeError(f"{ErrorCode.DOWNLOAD_FAILED.value}: {err_str[:200]}")
 

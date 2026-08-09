@@ -48,13 +48,13 @@ class MetadataService:
         import html
         import requests
         
-        shortcode = "photo"
+        shortcode = "media"
         if "/p/" in url:
             shortcode = url.split("/p/")[1].split("/")[0]
         elif "/reel/" in url:
             shortcode = url.split("/reel/")[1].split("/")[0]
             
-        logger.info(f"Executing Photo Fallback Extraction for shortcode {shortcode}")
+        logger.info(f"Executing Direct Embed Extraction for shortcode {shortcode}")
         
         session = requests.Session()
         session.headers.update({
@@ -62,15 +62,22 @@ class MetadataService:
             "Referer": "https://www.instagram.com/",
         })
         
+        clean_video_url = None
         clean_images = []
         username = "Instagram User"
-        caption = f"Instagram Photo ({shortcode})"
+        caption = f"Instagram Media ({shortcode})"
 
         embed_url = f"https://www.instagram.com/p/{shortcode}/embed/captioned/"
         try:
             resp = session.get(embed_url, timeout=6.0)
             if resp.status_code == 200:
                 resp_text = resp.text
+                
+                # Check for video_url in embed JSON/JS
+                video_matches = re.findall(r'"video_url"\s*:\s*"([^"]+)"', resp_text) or re.findall(r'video_url\\":\\"(.*?)\\"', resp_text)
+                if video_matches:
+                    clean_video_url = html.unescape(video_matches[0].replace("\\/", "/").replace("\\u0026", "&").replace("\\\\/", "/"))
+
                 images = re.findall(r'src="([^"]+fbcdn\.net[^"]+)"', resp_text) or re.findall(r'class="EmbeddedMediaImage"[^>]*src="([^"]+)"', resp_text) or re.findall(r'property="og:image" content="([^"]+)"', resp_text)
                 for img in images:
                     clean = html.unescape(img.replace("\\/", "/").replace("\\u0026", "&"))
@@ -91,25 +98,40 @@ class MetadataService:
         except Exception as embed_err:
             logger.warning(f"Embed page extraction error: {embed_err}")
 
-        if not clean_images:
-            clean_images.append(f"https://www.instagram.com/p/{shortcode}/media/?size=l")
-            
-        primary_url = clean_images[0]
-        meta: Dict[str, Any] = {
-            "id": shortcode,
-            "title": caption,
-            "uploader": username,
-            "channel": username,
-            "vcodec": "none",
-            "acodec": "none",
-            "duration": 0,
-            "thumbnail": primary_url,
-            "url": primary_url,
-            "ext": "jpg",
-            "is_photo": True,
-            "formats": [{"url": primary_url, "ext": "jpg", "format_id": "photo_1", "vcodec": "none", "acodec": "none"}]
-        }
-        return meta
+        primary_thumb = clean_images[0] if clean_images else f"https://www.instagram.com/p/{shortcode}/media/?size=l"
+        
+        if clean_video_url:
+            return {
+                "id": shortcode,
+                "title": caption,
+                "uploader": username,
+                "channel": username,
+                "vcodec": "h264",
+                "acodec": "aac",
+                "duration": 15,
+                "thumbnail": primary_thumb,
+                "url": clean_video_url,
+                "ext": "mp4",
+                "is_photo": False,
+                "is_video": True,
+                "formats": [{"url": clean_video_url, "ext": "mp4", "format_id": "video_hd", "vcodec": "h264", "acodec": "aac"}]
+            }
+        else:
+            return {
+                "id": shortcode,
+                "title": caption,
+                "uploader": username,
+                "channel": username,
+                "vcodec": "none",
+                "acodec": "none",
+                "duration": 0,
+                "thumbnail": primary_thumb,
+                "url": primary_thumb,
+                "ext": "jpg",
+                "is_photo": True,
+                "is_video": False,
+                "formats": [{"url": primary_thumb, "ext": "jpg", "format_id": "photo_1", "vcodec": "none", "acodec": "none"}]
+            }
 
     @classmethod
     def fetch_metadata(cls, url: str) -> Dict[str, Any]:
